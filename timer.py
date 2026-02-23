@@ -3,7 +3,7 @@ import time
 from datetime import datetime, date
 from typing import Optional, Callable
 
-from models import Task, DayPlan, TaskStatus, OverrunMode, AppSettings
+from models import Task, DayPlan, TaskStatus, OverrunBehavior, OverrunSource, AppSettings
 
 
 class TimerEngine:
@@ -31,7 +31,9 @@ class TimerEngine:
     def procrastination_limit(self) -> int:
         if self.settings.procrastination_override_minutes is not None:
             return self.settings.procrastination_override_minutes * 60
-        return max(0, self.SECONDS_IN_DAY - self.plan.total_allocated())
+        # Берём максимум elapsed/allocated — перерасход всегда съедает лимит прокрастинации
+        tasks_time = sum(max(t.elapsed_seconds, t.allocated_seconds) for t in self.plan.tasks)
+        return max(0, self.SECONDS_IN_DAY - tasks_time)
 
     def procrastination_remaining(self) -> int:
         return max(0, self.procrastination_limit() - self.plan.procrastination_used)
@@ -99,15 +101,22 @@ class TimerEngine:
         task.elapsed_seconds += 1
 
         if task.elapsed_seconds > task.allocated_seconds:
+            if self.settings.overrun_behavior == OverrunBehavior.STOP:
+                # Откатываем лишнюю секунду и снимаем задачу
+                task.elapsed_seconds -= 1
+                self.active_task_id = None
+                self.plan.procrastination_used += 1
+                return
+
             overrun_delta = task.elapsed_seconds - task.allocated_seconds
             prev_overrun = task.overrun_seconds
             task.overrun_seconds = overrun_delta
             delta = overrun_delta - prev_overrun
 
-            mode = self.settings.overrun_mode
-            if mode == OverrunMode.EAT_PROCRASTINATION:
+            source = self.settings.overrun_source
+            if source == OverrunSource.PROCRASTINATION:
                 self.plan.procrastination_used += delta
-            elif mode == OverrunMode.EAT_PROPORTIONAL:
+            elif source == OverrunSource.PROPORTIONAL:
                 self._eat_proportional(delta)
 
     def _eat_proportional(self, delta: int):

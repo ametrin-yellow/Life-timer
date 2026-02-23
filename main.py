@@ -15,6 +15,7 @@ from ui.add_task_dialog import AddTaskDialog
 from ui.stats_panel import StatsPanel
 from ui.settings_dialog import SettingsDialog
 from ui.templates_dialog import TemplatesDialog
+from ui.edit_task_dialog import EditTaskDialog
 from ui.skip_dialog import SkipDialog
 from ui.carry_over_dialog import CarryOverDialog
 
@@ -95,6 +96,7 @@ class LifeTimerApp(ctk.CTk):
             on_add=self._open_add_task,
             on_copy=self._copy_task,
             on_delete=self._delete_task,
+            on_edit=self._edit_task,
             on_load_templates=self._open_templates,
         )
         self.task_panel.pack(fill="both", expand=True, padx=10, pady=(4, 10))
@@ -231,6 +233,17 @@ class LifeTimerApp(ctk.CTk):
         self.engine.plan.tasks = [t for t in self.engine.plan.tasks if t.id != task_id]
         if self.engine.active_task_id == task_id:
             self.engine.deactivate()
+        storage.save_day(self.engine.plan)
+        self.task_panel.refresh(self.engine.plan, self.engine.active_task_id)
+
+    def _edit_task(self, task_id: str):
+        task = next((t for t in self.engine.plan.tasks if t.id == task_id), None)
+        if not task:
+            return
+        EditTaskDialog(self, task, on_save=self._save_edited_task)
+
+    def _save_edited_task(self, task: Task):
+        # Задача уже мутирована in-place в диалоге
         storage.save_day(self.engine.plan)
         self.task_panel.refresh(self.engine.plan, self.engine.active_task_id)
 

@@ -15,9 +15,15 @@ class CarryOverDialog(ctk.CTkToplevel):
         self.tasks = tasks
         self.on_confirm = on_confirm
         self.vars: list[ctk.BooleanVar] = []
-        self.after(100, self.lift)
-        self.after(100, self.grab_set)
+        self.after(100, self._force_focus)
+        self.after(150, self.grab_set)
         self._build()
+
+    def _force_focus(self):
+        self.attributes("-topmost", True)
+        self.lift()
+        self.focus_force()
+        self.after(200, lambda: self.attributes("-topmost", False))
 
     def _build(self):
         ctk.CTkLabel(self, text="Вчера остались незавершённые задачи",

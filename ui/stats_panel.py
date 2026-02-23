@@ -10,7 +10,15 @@ class StatsPanel(ctk.CTkToplevel):
         self.title("📊 Статистика")
         self.geometry("520x460")
         self.resizable(False, False)
+        self.after(100, self.lift)
+        self.after(100, self._force_focus)
         self._build()
+
+    def _force_focus(self):
+        self.attributes("-topmost", True)
+        self.lift()
+        self.focus_force()
+        self.after(200, lambda: self.attributes("-topmost", False))
 
     def _build(self):
         ctk.CTkLabel(self, text="Статистика за 7 дней",

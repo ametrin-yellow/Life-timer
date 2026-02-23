@@ -13,9 +13,15 @@ class AddTaskDialog(ctk.CTkToplevel):
         self.geometry("380x320")
         self.resizable(False, False)
         self.on_save = on_save
-        self.after(100, self.lift)
-        self.after(100, self.grab_set)
+        self.after(100, self._force_focus)
+        self.after(150, self.grab_set)
         self._build()
+
+    def _force_focus(self):
+        self.attributes("-topmost", True)
+        self.lift()
+        self.focus_force()
+        self.after(200, lambda: self.attributes("-topmost", False))
 
     def _build(self):
         pad = {"padx": 20, "pady": 6}

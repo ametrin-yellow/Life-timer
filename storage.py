@@ -154,3 +154,18 @@ def add_task_to_day(day: str, task):
     )
     plan.tasks.append(fresh)
     save_day(plan)
+
+
+def load_user_presets() -> list:
+    _ensure_dir()
+    path = DATA_DIR / "presets.json"
+    if path.exists():
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+def save_user_presets(presets: list):
+    _ensure_dir()
+    with open(DATA_DIR / "presets.json", "w", encoding="utf-8") as f:
+        json.dump(presets, f, ensure_ascii=False, indent=2)
