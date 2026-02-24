@@ -1,0 +1,94 @@
+name: Build & Release
+
+# Запускается когда пушишь тег вида v1.0, v1.2.3 и т.д.
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: Life-Timer-windows.zip
+            dist_path: dist/Life Timer
+          - os: macos-latest
+            artifact_name: Life-Timer-macos.zip
+            dist_path: dist/Life Timer
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: pyinstaller life_timer.spec --noconfirm
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: pyinstaller life_timer_mac.spec --noconfirm
+
+      - name: Archive artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist/Life Timer/*" -DestinationPath "${{ matrix.artifact_name }}"
+
+      - name: Archive artifact (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd dist
+          zip -r "../${{ matrix.artifact_name }}" "Life Timer"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Life Timer ${{ github.ref_name }}"
+          body: |
+            ## Life Timer ${{ github.ref_name }}
+
+            ### Установка
+            - **Windows**: скачай `Life-Timer-windows.zip`, распакуй, запусти `Life Timer.exe`
+            - **macOS**: скачай `Life-Timer-macos.zip`, распакуй, запусти `Life Timer`
+
+            > ⚠️ На macOS при первом запуске: ПКМ → Открыть → Открыть
+            > (Gatekeeper ругается на неподписанные приложения)
+          files: |
+            artifacts/Life-Timer-windows.zip/Life-Timer-windows.zip
+            artifacts/Life-Timer-macos.zip/Life-Timer-macos.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

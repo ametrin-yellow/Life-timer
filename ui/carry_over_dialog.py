@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from typing import Callable
-from models import Task
+from adapter import Task
 
 
 class CarryOverDialog(ctk.CTkToplevel):

@@ -1,6 +1,43 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# PyInstaller
+*.spec.bak
+*.manifest
+
+# База данных (пользовательская — не коммитим)
+life_timer.db
+*.db
+
+# Виртуальное окружение
+venv/
 .venv/
-.idea/
+env/
 .env
-*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Логи
+*.log
+
+# Тесты
+.pytest_cache/
+.coverage
+htmlcov/

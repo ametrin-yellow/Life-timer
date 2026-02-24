@@ -1,6 +1,6 @@
 """Валидация плана дня — мягкие предупреждения."""
 from datetime import datetime, date
-from models import DayPlan, TaskStatus
+from adapter import DayPlan, TaskStatus
 
 
 def check_plan(plan: DayPlan) -> list[str]:

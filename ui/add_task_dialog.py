@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from typing import Callable, Optional
-from models import Task
+from adapter import Task, Priority
 
 
 class AddTaskDialog(ctk.CTkToplevel):
@@ -10,7 +10,7 @@ class AddTaskDialog(ctk.CTkToplevel):
     def __init__(self, master, on_save: Callable[[Task], None], **kwargs):
         super().__init__(master, **kwargs)
         self.title("Новая задача")
-        self.geometry("380x320")
+        self.geometry("380x370")
         self.resizable(False, False)
         self.on_save = on_save
         self.after(100, self._force_focus)
@@ -37,6 +37,22 @@ class AddTaskDialog(ctk.CTkToplevel):
         ctk.CTkLabel(self, text="Начало (ЧЧ:ММ, опционально):", anchor="w").pack(fill="x", **pad)
         self.time_entry = ctk.CTkEntry(self, placeholder_text="14:30")
         self.time_entry.pack(fill="x", **pad)
+
+        # Приоритет
+        ctk.CTkLabel(self, text="Приоритет:", anchor="w").pack(fill="x", **pad)
+        self._priority_var = ctk.StringVar(value=Priority.NORMAL.value)
+        priority_frame = ctk.CTkFrame(self, fg_color="transparent")
+        priority_frame.pack(fill="x", padx=20, pady=2)
+        for pri, cfg in [
+            (Priority.HIGH,   ("🔴 Высокий", "#EF5350")),
+            (Priority.NORMAL, ("🟡 Средний",  "#FFB74D")),
+            (Priority.LOW,    ("🔵 Низкий",   "#90A4AE")),
+        ]:
+            ctk.CTkRadioButton(
+                priority_frame, text=cfg[0],
+                variable=self._priority_var, value=pri.value,
+                text_color=cfg[1]
+            ).pack(side="left", padx=8)
 
         btns = ctk.CTkFrame(self, fg_color="transparent")
         btns.pack(pady=12)
@@ -68,10 +84,14 @@ class AddTaskDialog(ctk.CTkToplevel):
                 messagebox.showerror("Ошибка", "Время должно быть в формате ЧЧ:ММ", parent=self)
                 return
 
+        priority = Priority(self._priority_var.get())
+
         task = Task(
             name=name,
             allocated_seconds=int(minutes * 60),
             scheduled_time=scheduled,
+            priority=priority,
         )
         self.on_save(task)
         self.destroy()
+

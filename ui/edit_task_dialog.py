@@ -2,7 +2,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 import re
 from typing import Callable
-from models import Task
+from adapter import Task, Priority
 
 
 class EditTaskDialog(ctk.CTkToplevel):
@@ -11,7 +11,7 @@ class EditTaskDialog(ctk.CTkToplevel):
     def __init__(self, master, task: Task, on_save: Callable[[Task], None], **kwargs):
         super().__init__(master, **kwargs)
         self.title("Редактировать задачу")
-        self.geometry("380x300")
+        self.geometry("380x360")
         self.resizable(False, False)
         self.task = task
         self.on_save = on_save
@@ -35,7 +35,6 @@ class EditTaskDialog(ctk.CTkToplevel):
 
         ctk.CTkLabel(self, text="Оставшееся время (минуты):", anchor="w").pack(fill="x", **pad)
         self.minutes_entry = ctk.CTkEntry(self)
-        # Показываем remaining, не allocated — чтобы не сбивать с толку
         remaining_min = self.task.remaining_seconds / 60
         self.minutes_entry.insert(0, f"{remaining_min:.0f}")
         self.minutes_entry.pack(fill="x", **pad)
@@ -45,6 +44,23 @@ class EditTaskDialog(ctk.CTkToplevel):
         if self.task.scheduled_time:
             self.time_entry.insert(0, self.task.scheduled_time)
         self.time_entry.pack(fill="x", **pad)
+
+        # Приоритет
+        ctk.CTkLabel(self, text="Приоритет:", anchor="w").pack(fill="x", **pad)
+        current_priority = self.task.priority if self.task.priority else Priority.NORMAL
+        self._priority_var = ctk.StringVar(value=current_priority.value)
+        priority_frame = ctk.CTkFrame(self, fg_color="transparent")
+        priority_frame.pack(fill="x", padx=20, pady=2)
+        for pri, cfg in [
+            (Priority.HIGH,   ("🔴 Высокий", "#EF5350")),
+            (Priority.NORMAL, ("🟡 Средний",  "#FFB74D")),
+            (Priority.LOW,    ("🔵 Низкий",   "#90A4AE")),
+        ]:
+            ctk.CTkRadioButton(
+                priority_frame, text=cfg[0],
+                variable=self._priority_var, value=pri.value,
+                text_color=cfg[1]
+            ).pack(side="left", padx=8)
 
         btns = ctk.CTkFrame(self, fg_color="transparent")
         btns.pack(pady=14)
@@ -75,8 +91,9 @@ class EditTaskDialog(ctk.CTkToplevel):
             return
 
         self.task.name = name
-        # Меняем allocated на elapsed + новый remaining
         self.task.allocated_seconds = self.task.elapsed_seconds + int(minutes * 60)
         self.task.scheduled_time = scheduled
+        self.task.priority = Priority(self._priority_var.get())
         self.on_save(self.task)
         self.destroy()
+
