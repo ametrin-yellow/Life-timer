@@ -54,7 +54,7 @@ def calc_task_base_coins(task: Task) -> int:
     return max(1, math.floor(base))
 
 
-def calc_task_bonus(task: Task, base_bonus: int) -> int:
+def calc_task_bonus(task: Task) -> int:
     """
     Рассчитывает бонус за завершённую задачу.
 
@@ -62,7 +62,7 @@ def calc_task_bonus(task: Task, base_bonus: int) -> int:
     Остальные: base_coins × time_multiplier.
       Вовремя/раньше:  multiplier = 2 - elapsed/alloc  (от 2.0 до 1.0)
       Чуть позже <2×:  multiplier = 2 - alloc/elapsed  (от 1.0 до 0.5)
-      >2×:             multiplier = 0
+      >2×:             multiplier = 0, штраф
     """
     priority_str = _priority_value(task)
     if priority_str == Priority.LOW.value:
@@ -87,11 +87,12 @@ def calc_task_bonus(task: Task, base_bonus: int) -> int:
     return max(1, math.floor(base_coins * multiplier))
 
 
-def calc_task_penalty(task: Task, base_penalty: int, skip_count: int = 0) -> int:
+def calc_task_penalty(task: Task) -> int:
     """
-    Рассчитывает штраф.
+    Штраф за задачу = базовая награда задачи.
+    Скипнул задачу стоимостью 12 коинов → теряешь 12.
     LOW-задачи → 0 (без награды = без наказания).
-    Остальные → base_coins задачи при скипе/незакрытии/перерасходе >2×.
+    Перерасход >2× — тоже штраф (бонуса нет и ещё минус).
     """
     priority_str = _priority_value(task)
     if priority_str == Priority.LOW.value:
@@ -103,9 +104,7 @@ def calc_task_penalty(task: Task, base_penalty: int, skip_count: int = 0) -> int
         return base_coins
 
     if task.status == TaskStatus.COMPLETED:
-        alloc = task.allocated_seconds
-        elapsed = task.elapsed_seconds
-        ratio = elapsed / alloc if alloc > 0 else 0
+        ratio = task.elapsed_seconds / task.allocated_seconds if task.allocated_seconds > 0 else 0
         if ratio > 2.0:
             return base_coins
 
@@ -145,7 +144,6 @@ def calc_day_preview(plan_date: date) -> Optional[dict]:
 
     balance = repo.get_balance()
     streak = balance.streak
-    base_penalty = settings.base_penalty
 
     earned = 0       # уже заработано (завершённые задачи)
     potential = 0    # потенциально если выполнить оставшиеся вовремя
@@ -154,13 +152,12 @@ def calc_day_preview(plan_date: date) -> Optional[dict]:
     for task in plan.tasks:
         base = calc_task_base_coins(task)
         if task.status == TaskStatus.COMPLETED:
-            earned += calc_task_bonus(task, base_penalty)
-            penalties += calc_task_penalty(task, base_penalty)
+            earned += calc_task_bonus(task)
+            penalties += calc_task_penalty(task)
         elif task.status == TaskStatus.SKIPPED:
-            penalties += calc_task_penalty(task, base_penalty)
+            penalties += calc_task_penalty(task)
         else:
-            # Незавершённая — потенциал: как будто выполнит ровно в allocated
-            potential += base  # multiplier=1 при ratio=1
+            potential += base  # потенциал: как будто выполнит ровно в allocated
 
     multiplier = calc_streak_multiplier(streak)
     total_earned = int((earned - penalties) * multiplier)
@@ -196,31 +193,27 @@ def finalize_day(plan_date: date) -> Optional[dict]:
 
     balance = repo.get_balance()
     streak = balance.streak
-    base_penalty = settings.base_penalty  # оставляем для обратной совместимости
 
     total_bonus = 0
     total_penalty = 0
-    skip_count = 0
 
     for task in plan.tasks:
         if task.status == TaskStatus.COMPLETED:
-            bonus = calc_task_bonus(task, base_penalty)
-            penalty = calc_task_penalty(task, base_penalty)
+            bonus = calc_task_bonus(task)
+            penalty = calc_task_penalty(task)
             task.coins_earned = bonus
             task.coins_penalty = penalty
             total_bonus += bonus
             total_penalty += penalty
 
         elif task.status == TaskStatus.SKIPPED:
-            skip_count += 1
-            penalty = calc_task_penalty(task, base_penalty, skip_count)
+            penalty = calc_task_penalty(task)
             task.coins_penalty = penalty
             total_penalty += penalty
 
         elif task.status in (TaskStatus.PENDING, TaskStatus.ACTIVE):
             # Незакрытая задача = скип
-            skip_count += 1
-            penalty = calc_task_penalty(task, base_penalty)
+            penalty = calc_task_penalty(task)
             task.coins_penalty = penalty
             total_penalty += penalty
 

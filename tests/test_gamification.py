@@ -104,41 +104,41 @@ class TestCalcTaskBonus(unittest.TestCase):
 
     def test_low_always_zero_bonus(self):
         t = make_task(3600, 3600, priority=Priority.LOW)
-        self.assertEqual(gami.calc_task_bonus(t, 10), 0)
+        self.assertEqual(gami.calc_task_bonus(t), 0)
 
     def test_normal_exact_on_time(self):
         # 60 мин NORMAL, выполнил точно → base=6, multiplier=1 → 6
         t = make_task(3600, 3600, priority=Priority.NORMAL)
-        self.assertEqual(gami.calc_task_bonus(t, 10), 6)
+        self.assertEqual(gami.calc_task_bonus(t), 6)
 
     def test_normal_early_finish(self):
         # 60 мин, потратил 30 → ratio=0.5 → multiplier=1.5 → floor(6*1.5)=9
         t = make_task(3600, 1800, priority=Priority.NORMAL)
-        self.assertEqual(gami.calc_task_bonus(t, 10), 9)
+        self.assertEqual(gami.calc_task_bonus(t), 9)
 
     def test_normal_zero_elapsed_max_bonus(self):
         # ratio=0 → multiplier=2 → 6*2=12
         t = make_task(3600, 0, priority=Priority.NORMAL)
-        self.assertEqual(gami.calc_task_bonus(t, 10), 12)
+        self.assertEqual(gami.calc_task_bonus(t), 12)
 
     def test_high_double_vs_normal(self):
         # HIGH 60 мин на время → base=12, multiplier=1 → 12 (vs 6 для NORMAL)
         t = make_task(3600, 3600, priority=Priority.HIGH)
-        self.assertEqual(gami.calc_task_bonus(t, 10), 12)
+        self.assertEqual(gami.calc_task_bonus(t), 12)
 
     def test_beyond_double_returns_zero(self):
         # elapsed > 2x → 0 независимо от приоритета
         t = make_task(3600, 7201, priority=Priority.NORMAL)
-        self.assertEqual(gami.calc_task_bonus(t, 10), 0)
+        self.assertEqual(gami.calc_task_bonus(t), 0)
 
     def test_high_beyond_double_returns_zero(self):
         t = make_task(3600, 7201, priority=Priority.HIGH)
-        self.assertEqual(gami.calc_task_bonus(t, 10), 0)
+        self.assertEqual(gami.calc_task_bonus(t), 0)
 
     def test_overrun_150pct_still_gives_bonus(self):
         # ratio=1.5 → multiplier = 2 - 1/1.5 ≈ 1.33 → floor(6*1.33)=7
         t = make_task(3600, 5400, priority=Priority.NORMAL)
-        bonus = gami.calc_task_bonus(t, 10)
+        bonus = gami.calc_task_bonus(t)
         self.assertGreater(bonus, 0)
 
 
@@ -151,30 +151,30 @@ class TestCalcTaskPenalty(unittest.TestCase):
     def test_low_no_penalty_on_skip(self):
         # LOW задачи — нет штрафа даже за скип
         t = make_task(3600, 0, TaskStatus.SKIPPED, Priority.LOW)
-        self.assertEqual(gami.calc_task_penalty(t, 10), 0)
+        self.assertEqual(gami.calc_task_penalty(t), 0)
 
     def test_normal_skip_penalty_equals_base_coins(self):
         # NORMAL 60 мин → base=6 → штраф за скип = 6
         t = make_task(3600, 0, TaskStatus.SKIPPED, Priority.NORMAL)
-        self.assertEqual(gami.calc_task_penalty(t, 10), 6)
+        self.assertEqual(gami.calc_task_penalty(t), 6)
 
     def test_high_skip_penalty_equals_base_coins(self):
         # HIGH 60 мин → base=12 → штраф за скип = 12
         t = make_task(3600, 0, TaskStatus.SKIPPED, Priority.HIGH)
-        self.assertEqual(gami.calc_task_penalty(t, 10), 12)
+        self.assertEqual(gami.calc_task_penalty(t), 12)
 
     def test_completed_on_time_no_penalty(self):
         t = make_task(3600, 3600, TaskStatus.COMPLETED, Priority.NORMAL)
-        self.assertEqual(gami.calc_task_penalty(t, 10), 0)
+        self.assertEqual(gami.calc_task_penalty(t), 0)
 
     def test_completed_beyond_double_penalty(self):
         t = make_task(3600, 7201, TaskStatus.COMPLETED, Priority.NORMAL)
-        self.assertEqual(gami.calc_task_penalty(t, 10), 6)
+        self.assertEqual(gami.calc_task_penalty(t), 6)
 
     def test_completed_exact_double_no_penalty(self):
         # ratio == 2.0 — граница, штрафа нет
         t = make_task(3600, 7200, TaskStatus.COMPLETED, Priority.NORMAL)
-        self.assertEqual(gami.calc_task_penalty(t, 10), 0)
+        self.assertEqual(gami.calc_task_penalty(t), 0)
 
 
 # ──────────────────────────────────────────────────────────
