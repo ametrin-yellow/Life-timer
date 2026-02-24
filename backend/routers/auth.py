@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr
 
 from database import get_db
 from models import User, UserSettings, CoinBalance
-from auth import (
+from security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token,
     decode_token, get_current_user,

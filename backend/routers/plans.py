@@ -13,7 +13,7 @@ from schemas import (
     PlanResponse, PlanUpdate,
     TaskCreate, TaskUpdate, TaskResponse,
 )
-from auth import get_current_user
+from security import get_current_user
 
 router = APIRouter()
 

@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import auth, plans
-# from routers import settings, gamification, shop
+from routers import auth, plans, settings
+# from routers import gamification, shop
 
 app = FastAPI(
     title="Life Timer API",
@@ -21,7 +21,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(plans.router, prefix="/plans", tags=["plans"])
 # app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
-# app.include_router(settings.router, prefix="/settings", tags=["settings"])
+app.include_router(settings.router, prefix="/settings", tags=["settings"])
 # app.include_router(gamification.router, prefix="/gamification", tags=["gamification"])
 # app.include_router(shop.router, prefix="/shop", tags=["shop"])
 
