@@ -47,7 +47,6 @@ a = Analysis(
     excludes=[
         "pytest",
         "unittest",
-        "email",
         "http",
         "xml",
         "pydoc",
