@@ -68,8 +68,19 @@ def update_plan(plan_id: int, **kwargs):
         s.commit()
 
 
+def mark_carried_over(task_ids: list[str]) -> None:
+    """Помечает задачи как перенесённые — больше не будут предлагаться к переносу."""
+    if not task_ids:
+        return
+    with get_session() as s:
+        s.query(Task).filter(Task.id.in_(task_ids)).update(
+            {"carried_over": True}, synchronize_session=False
+        )
+        s.commit()
+
+
 def get_unfinished_from_date(d: date) -> list[Task]:
-    """Незавершённые задачи за конкретный день (для переноса)."""
+    """Незавершённые задачи за конкретный день которые ещё не переносились."""
     with get_session() as s:
         from sqlalchemy.orm import joinedload
         plan = (s.query(DayPlan)
@@ -79,7 +90,8 @@ def get_unfinished_from_date(d: date) -> list[Task]:
         if not plan:
             return []
         result = [t for t in plan.tasks
-                  if t.status in (TaskStatus.PENDING, TaskStatus.ACTIVE)]
+                  if t.status in (TaskStatus.PENDING, TaskStatus.ACTIVE)
+                  and not t.carried_over]
         s.expunge_all()
         return result
 
@@ -207,12 +219,14 @@ def get_rewards(active_only: bool = True) -> list[Reward]:
 
 def add_reward(name: str, price: int, reward_type: RewardType,
                description: Optional[str] = None,
-               count: Optional[int] = None) -> Reward:
+               count: Optional[int] = None,
+               task_duration_minutes: Optional[int] = None) -> Reward:
     with get_session() as s:
         r = Reward(
             name=name, price=price, reward_type=reward_type,
             description=description,
             count=count, count_initial=count,
+            task_duration_minutes=task_duration_minutes,
         )
         s.add(r)
         s.commit()
@@ -220,8 +234,8 @@ def add_reward(name: str, price: int, reward_type: RewardType,
         return r
 
 
-def purchase_reward(reward_id: int) -> int:
-    """Покупает поощрение, возвращает новый баланс. Raises ValueError если нельзя."""
+def purchase_reward(reward_id: int) -> dict:
+    """Покупает поощрение. Возвращает dict с new_balance и reward. Raises ValueError если нельзя."""
     with get_session() as s:
         r = s.get(Reward, reward_id)
         if not r or not r.is_active:
@@ -230,10 +244,9 @@ def purchase_reward(reward_id: int) -> int:
             raise ValueError("Товар закончился")
 
         bal = s.get(CoinBalance, 1)
-        if bal.balance <= 0:
+        if bal.balance < r.price:
             raise ValueError("Недостаточно коинов")
-        new_balance = max(0, bal.balance - r.price)
-        bal.balance = new_balance
+        bal.balance -= r.price
 
         s.add(CoinTransaction(
             amount=-r.price,
@@ -243,8 +256,15 @@ def purchase_reward(reward_id: int) -> int:
 
         if r.reward_type == RewardType.LIMITED:
             r.count -= 1
+
         s.commit()
-        return new_balance
+        return {
+            "new_balance": bal.balance,
+            "reward_name": r.name,
+            "reward_price": r.price,
+            "reward_type": r.reward_type,
+            "task_duration_minutes": r.task_duration_minutes,
+        }
 
 
 def delete_reward(reward_id: int):
@@ -256,10 +276,11 @@ def delete_reward(reward_id: int):
 
 
 def update_reward(reward_id: int, name: str, price: int, description: Optional[str],
-                  count_add: int = 0):
+                  count_add: int = 0, task_duration_minutes: Optional[int] = None):
     """
     Обновляет название, цену, описание награды.
     count_add — сколько добавить к остатку (для пополнения лимитированных).
+    task_duration_minutes — для абонементов: длительность создаваемой задачи.
     """
     with get_session() as s:
         r = s.get(Reward, reward_id)
@@ -268,6 +289,8 @@ def update_reward(reward_id: int, name: str, price: int, description: Optional[s
         r.name = name
         r.price = price
         r.description = description or None
+        if r.reward_type == RewardType.SUBSCRIPTION:
+            r.task_duration_minutes = task_duration_minutes or None
         if count_add > 0 and r.reward_type == RewardType.LIMITED:
             r.count = (r.count or 0) + count_add
             r.count_initial = (r.count_initial or 0) + count_add

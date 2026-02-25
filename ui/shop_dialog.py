@@ -23,13 +23,15 @@ TYPE_COLORS = {
 
 class ShopDialog(ctk.CTkToplevel):
 
-    def __init__(self, master, on_purchase: Optional[Callable] = None, **kwargs):
+    def __init__(self, master, on_purchase: Optional[Callable] = None,
+                 on_create_task: Optional[Callable] = None, **kwargs):
         super().__init__(master, **kwargs)
         self.title("🛍 Магазин")
         self.geometry("520x560")
         self.minsize(440, 400)
         self.resizable(True, True)
         self.on_purchase = on_purchase
+        self.on_create_task = on_create_task
         self.after(100, self._force_focus)
         self._build()
 
@@ -178,13 +180,54 @@ class ShopDialog(ctk.CTkToplevel):
 
     def _buy(self, reward_id: int):
         try:
-            new_balance = repo.purchase_reward(reward_id)
+            info = repo.purchase_reward(reward_id)
             if self.on_purchase:
-                self.on_purchase(new_balance)
+                self.on_purchase(info)
             self._refresh_balance()
             self._render_shop()
+            self._show_receipt(info)
         except ValueError as e:
             messagebox.showerror("Ошибка", str(e), parent=self)
+
+    def _show_receipt(self, info: dict):
+        """Чек после покупки."""
+        name = info["reward_name"]
+        price = info["reward_price"]
+        balance = info["new_balance"]
+        task_mins = info.get("task_duration_minutes")
+
+        popup = ctk.CTkToplevel(self)
+        popup.title("Покупка")
+        popup.geometry("320x200")
+        popup.resizable(False, False)
+        popup.attributes("-topmost", True)
+        popup.grab_set()
+
+        ctk.CTkLabel(popup, text="✅ Куплено!", font=("Helvetica", 16, "bold"),
+                     text_color="#4CAF50").pack(pady=(20, 4))
+        ctk.CTkLabel(popup, text=name, font=("Helvetica", 14)).pack()
+        ctk.CTkLabel(popup, text=f"−{price} 🪙  →  баланс: {balance} 🪙",
+                     font=("Helvetica", 12), text_color="gray").pack(pady=(4, 12))
+
+        if task_mins:
+            # Абонемент с задачей — предлагаем добавить в план
+            ctk.CTkLabel(popup, text=f"Добавить задачу «{name}» ({task_mins} мин) в план?",
+                         font=("Helvetica", 11), wraplength=280).pack(pady=(0, 8))
+            btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
+            btn_frame.pack()
+
+            def _add_task():
+                if self.on_create_task:
+                    self.on_create_task(name, task_mins)
+                popup.destroy()
+
+            ctk.CTkButton(btn_frame, text="Добавить задачу", width=130, height=30,
+                          fg_color="#1B5E20", command=_add_task).pack(side="left", padx=6)
+            ctk.CTkButton(btn_frame, text="Не сейчас", width=90, height=30,
+                          fg_color="#444", command=popup.destroy).pack(side="left", padx=6)
+        else:
+            ctk.CTkButton(popup, text="Закрыть", width=100, height=32,
+                          fg_color="#444", command=popup.destroy).pack()
 
     # ──────────────────────────────────────────────
     #  Вкладка Управление
@@ -233,6 +276,14 @@ class ShopDialog(ctk.CTkToplevel):
         ctk.CTkLabel(row4, text="Кол-во:", width=90, anchor="w").pack(side="left")
         self._new_count = ctk.CTkEntry(row4, placeholder_text="для лимит. типа", width=120)
         self._new_count.pack(side="left")
+
+        # Длительность задачи для абонемента
+        row5 = ctk.CTkFrame(form, fg_color="transparent")
+        row5.pack(fill="x", **pad)
+        ctk.CTkLabel(row5, text="Задача (мин):", width=90, anchor="w").pack(side="left")
+        self._new_duration = ctk.CTkEntry(row5, placeholder_text="мин, для абонемента", width=120)
+        self._new_duration.pack(side="left")
+
         self._on_type_change(self._new_type.get())  # задаём начальное состояние
 
         ctk.CTkButton(form, text="+ Добавить награду", width=160,
@@ -251,15 +302,21 @@ class ShopDialog(ctk.CTkToplevel):
     def _render_manage_list(self):
         for w in self._manage_scroll.winfo_children():
             w.destroy()
+        # Сбрасываем scrollregion чтобы список не казался пустым без переключения вкладок
+        try:
+            self._manage_scroll._parent_canvas.configure(scrollregion=(0, 0, 0, 0))
+        except Exception:
+            pass
 
         rewards = repo.get_rewards(active_only=False)
         if not rewards:
             ctk.CTkLabel(self._manage_scroll, text="Пока нет наград",
                          text_color="gray").pack(pady=10)
-            return
+        else:
+            for r in rewards:
+                self._reward_manage_row(self._manage_scroll, r)
 
-        for r in rewards:
-            self._reward_manage_row(self._manage_scroll, r)
+        self._manage_scroll.update_idletasks()
 
     def _reward_manage_row(self, parent, r):
         """Строка с инлайн-редактированием награды."""
@@ -322,6 +379,19 @@ class ShopDialog(ctk.CTkToplevel):
             ctk.CTkLabel(row4, text=f"(сейчас: {r.count})", text_color="#888",
                          font=("Helvetica", 11)).pack(side="left", padx=6)
 
+        # Длительность задачи — только для абонемента
+        e_duration = None
+        if r.reward_type == RewardType.SUBSCRIPTION:
+            row_dur = ctk.CTkFrame(edit_frame, fg_color="transparent")
+            row_dur.pack(fill="x", **pad)
+            ctk.CTkLabel(row_dur, text="Задача (мин):", width=80, anchor="w").pack(side="left")
+            e_duration = ctk.CTkEntry(row_dur, width=80, placeholder_text="опционально")
+            if r.task_duration_minutes:
+                e_duration.insert(0, str(r.task_duration_minutes))
+            e_duration.pack(side="left")
+            ctk.CTkLabel(row_dur, text="создаётся при покупке", text_color="#888",
+                         font=("Helvetica", 11)).pack(side="left", padx=6)
+
         btn_row = ctk.CTkFrame(edit_frame, fg_color="transparent")
         btn_row.pack(fill="x", padx=8, pady=(2, 8))
 
@@ -348,9 +418,21 @@ class ShopDialog(ctk.CTkToplevel):
                     except ValueError:
                         messagebox.showerror("Ошибка", "Добавляемое кол-во — целое число ≥ 0", parent=self)
                         return
+            task_duration = None
+            if e_duration is not None:
+                dur_val = e_duration.get().strip()
+                if dur_val:
+                    try:
+                        task_duration = int(dur_val)
+                        if task_duration <= 0:
+                            raise ValueError
+                    except ValueError:
+                        messagebox.showerror("Ошибка", "Длительность — целое число > 0", parent=self)
+                        return
             desc = e_desc.get().strip() or None
             repo.update_reward(r.id, name=name, price=price,
-                               description=desc, count_add=count_add)
+                               description=desc, count_add=count_add,
+                               task_duration_minutes=task_duration)
             self._render_manage_list()
             self._render_shop()
 
@@ -372,12 +454,17 @@ class ShopDialog(ctk.CTkToplevel):
         btn_edit.configure(command=lambda: _toggle(not edit_frame.winfo_ismapped()))
 
     def _on_type_change(self, value: str):
-        """Блокируем поле кол-ва для абонемента."""
+        """Показываем нужные поля в зависимости от типа."""
         is_limited = (value == "лимитированное")
+        is_subscription = (value == "абонемент")
         self._new_count.configure(state="normal" if is_limited else "disabled",
                                    placeholder_text="кол-во" if is_limited else "н/д")
         if not is_limited:
             self._new_count.delete(0, "end")
+        self._new_duration.configure(state="normal" if is_subscription else "disabled",
+                                      placeholder_text="мин, для абонемента" if is_subscription else "н/д")
+        if not is_subscription:
+            self._new_duration.delete(0, "end")
 
     def _add_reward(self):
         name = self._new_name.get().strip()
@@ -411,14 +498,30 @@ class ShopDialog(ctk.CTkToplevel):
                                      parent=self)
                 return
 
+        task_duration = None
+        if rtype == RewardType.SUBSCRIPTION:
+            dur_str = self._new_duration.get().strip()
+            if dur_str:
+                try:
+                    task_duration = int(dur_str)
+                    if task_duration <= 0:
+                        raise ValueError
+                except ValueError:
+                    messagebox.showerror("Ошибка",
+                                         "Длительность задачи должна быть целым числом > 0",
+                                         parent=self)
+                    return
+
         desc = self._new_desc.get().strip() or None
         repo.add_reward(name=name, price=price, reward_type=rtype,
-                        description=desc, count=count)
+                        description=desc, count=count,
+                        task_duration_minutes=task_duration)
 
         self._new_name.delete(0, "end")
         self._new_price.delete(0, "end")
         self._new_desc.delete(0, "end")
         self._new_count.delete(0, "end")
+        self._new_duration.delete(0, "end")
 
         self._render_manage_list()
         self._render_shop()

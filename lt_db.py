@@ -115,6 +115,8 @@ class Task(Base):
     # Геймификация
     coins_earned      = Column(Integer, default=0)
     coins_penalty     = Column(Integer, default=0)
+    # Перенос
+    carried_over      = Column(Boolean, default=False)  # задача перенесена с предыдущего дня
 
     plan = relationship("DayPlan", back_populates="tasks")
 
@@ -159,6 +161,7 @@ class Reward(Base):
     count_initial = Column(Integer, nullable=True)         # для LIMITED: начальное
     is_active     = Column(Boolean, default=True)
     created_at    = Column(DateTime, default=datetime.now)
+    task_duration_minutes = Column(Integer, nullable=True) # для SUBSCRIPTION: создать задачу
 
 
 # ──────────────────────────────────────────────
@@ -222,6 +225,10 @@ def _migrate(eng):
     with eng.connect() as conn:
         _add_column_if_missing(conn, "tasks", "priority",
                                "VARCHAR DEFAULT 'normal'")
+        _add_column_if_missing(conn, "tasks", "carried_over",
+                               "BOOLEAN DEFAULT 0")
+        _add_column_if_missing(conn, "rewards", "task_duration_minutes",
+                               "INTEGER DEFAULT NULL")
 
 
 def _add_column_if_missing(conn, table: str, column: str, col_def: str):
