@@ -237,3 +237,30 @@ class PresetItem(Base):
 
     preset   = relationship("Preset", back_populates="items")
     template = relationship("Template")
+
+
+# ──────────────────────────────────────────────
+#  События синхронизации
+# ──────────────────────────────────────────────
+
+class EventType(str, enum.Enum):
+    TASK_CREATED     = "task_created"
+    TASK_UPDATED     = "task_updated"
+    TASK_DELETED     = "task_deleted"
+    TASK_STARTED     = "task_started"
+    TASK_STOPPED     = "task_stopped"
+    TASK_COMPLETED   = "task_completed"
+    TASK_SKIPPED     = "task_skipped"
+    TASK_TRANSFERRED = "task_transferred"
+
+
+class DeviceEvent(Base):
+    __tablename__ = "device_events"
+
+    id          = Column(Integer, primary_key=True, autoincrement=True)
+    user_id     = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    device_id   = Column(String, nullable=False)        # uuid устройства
+    event_type  = Column(SAEnum(EventType), nullable=False)
+    payload     = Column(Text, nullable=False)           # JSON
+    occurred_at = Column(DateTime, nullable=False, index=True)  # когда на клиенте
+    received_at = Column(DateTime, default=datetime.utcnow)     # когда сервер получил

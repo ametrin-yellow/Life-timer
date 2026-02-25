@@ -170,3 +170,31 @@ class RewardResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ──────────────────────────────────────────────
+#  Events
+# ──────────────────────────────────────────────
+
+from models import EventType
+
+class EventIn(BaseModel):
+    device_id:   str
+    event_type:  EventType
+    payload:     dict
+    occurred_at: datetime
+
+
+class EventBatchIn(BaseModel):
+    events: list[EventIn]
+
+
+class EventResponse(BaseModel):
+    id:          int
+    device_id:   str
+    event_type:  EventType
+    payload:     dict
+    occurred_at: datetime
+    received_at: datetime
+
+    model_config = {"from_attributes": True}
