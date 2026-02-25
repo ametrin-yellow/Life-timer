@@ -7,13 +7,16 @@ class CarryOverDialog(ctk.CTkToplevel):
     """Предложение перенести незавершённые задачи с прошлого дня."""
 
     def __init__(self, master, tasks: list[Task],
-                 on_confirm: Callable[[list[Task]], None], **kwargs):
+                 on_confirm: Callable[[list[Task]], None],
+                 on_dismiss: Callable[[list[Task]], None] | None = None,
+                 **kwargs):
         super().__init__(master, **kwargs)
         self.title("Незавершённые задачи")
         self.geometry("420x360")
         self.resizable(False, False)
         self.tasks = tasks
         self.on_confirm = on_confirm
+        self.on_dismiss = on_dismiss
         self.vars: list[ctk.BooleanVar] = []
         self.after(100, self._force_focus)
         self.after(150, self.grab_set)
@@ -52,10 +55,19 @@ class CarryOverDialog(ctk.CTkToplevel):
                       command=self._confirm).pack(side="left", padx=6)
         ctk.CTkButton(btns, text="Пропустить", width=100, height=34,
                       fg_color="#444", corner_radius=6,
-                      command=self.destroy).pack(side="left", padx=6)
+                      command=self._dismiss).pack(side="left", padx=6)
+
+    def _dismiss(self):
+        if self.on_dismiss:
+            self.on_dismiss(self.tasks)
+        self.destroy()
 
     def _confirm(self):
         selected = [t for t, v in zip(self.tasks, self.vars) if v.get()]
+        # Непереносимые тоже помечаем — чтобы не показывались снова
+        not_selected = [t for t, v in zip(self.tasks, self.vars) if not v.get()]
+        if not_selected and self.on_dismiss:
+            self.on_dismiss(not_selected)
         if selected:
             self.on_confirm(selected)
         self.destroy()

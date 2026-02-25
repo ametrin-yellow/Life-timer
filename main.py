@@ -325,13 +325,26 @@ class LifeTimerApp(ctk.CTk):
 
     def _check_carry_over(self):
         yesterday = date.today() - timedelta(days=1)
+        # Подводим итог вчерашнего дня если ещё не подводили
+        result = gami.finalize_day(yesterday)
+        if result:
+            self._show_day_summary(result)
         unfinished = repo.get_unfinished_from_date(yesterday)
         if not unfinished:
             return
         ui_tasks = [db_task_to_ui(t) for t in unfinished]
-        CarryOverDialog(self, ui_tasks, on_confirm=self._carry_over_tasks)
+        CarryOverDialog(self, ui_tasks,
+                        on_confirm=self._carry_over_tasks,
+                        on_dismiss=self._dismiss_carry_over)
+
+    def _dismiss_carry_over(self, tasks: list[Task]):
+        """Пользователь отказался переносить — помечаем чтобы не показывать снова."""
+        repo.mark_carried_over([t.id for t in tasks])
 
     def _carry_over_tasks(self, tasks: list[Task]):
+        source_ids = [t.id for t in tasks]
+        # Помечаем исходные задачи — больше не будут предлагаться к переносу
+        repo.mark_carried_over(source_ids)
         for t in tasks:
             new_id = str(uuid.uuid4())
             repo.add_task(self._today_plan_id, new_id,
@@ -382,10 +395,25 @@ class LifeTimerApp(ctk.CTk):
         StatsPanel(self)
 
     def _open_shop(self):
-        ShopDialog(self, on_purchase=self._on_shop_purchase)
+        ShopDialog(self, on_purchase=self._on_shop_purchase,
+                   on_create_task=self._on_shop_create_task)
 
-    def _on_shop_purchase(self, new_balance: int):
+    def _on_shop_purchase(self, purchase_info: dict):
         """Обновляем UI после покупки в магазине."""
+        self._refresh_ui()
+
+    def _on_shop_create_task(self, name: str, duration_minutes: int):
+        """Создаём задачу из абонемента с LOW приоритетом."""
+        import uuid as _uuid
+        from lt_db import Priority
+        new_id = str(_uuid.uuid4())
+        allocated = duration_minutes * 60
+        repo.add_task(self._today_plan_id, new_id, name, allocated,
+                      scheduled_time=None,
+                      position=len(self.engine.get_tasks()),
+                      priority=Priority.LOW)
+        self.engine.add_task(new_id, name, allocated,
+                             scheduled_time=None, priority=Priority.LOW)
         self._refresh_ui()
 
     def _open_settings(self):

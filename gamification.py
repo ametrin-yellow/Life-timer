@@ -212,8 +212,11 @@ def finalize_day(plan_date: date) -> Optional[dict]:
             total_penalty += penalty
 
         elif task.status in (TaskStatus.PENDING, TaskStatus.ACTIVE):
-            # Незакрытая задача = скип
-            penalty = calc_task_penalty(task)
+            # Незакрытая задача: если перенесли сознательно — половина штрафа
+            if task.carried_over:
+                penalty = calc_postpone_penalty(task)
+            else:
+                penalty = calc_task_penalty(task)
             task.coins_penalty = penalty
             total_penalty += penalty
 
