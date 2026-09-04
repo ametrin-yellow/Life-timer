@@ -67,7 +67,7 @@ class User(Base):
     id            = Column(Integer, primary_key=True, autoincrement=True)
     email         = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
-    created_at    = Column(DateTime, default=_utcnow)
+    created_at    = Column(DateTime(timezone=True), default=_utcnow)
     is_active     = Column(Boolean, default=True)
 
     # relations
@@ -174,7 +174,7 @@ class CoinTransaction(Base):
 
     id         = Column(Integer, primary_key=True, autoincrement=True)
     user_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    created_at = Column(DateTime, default=_utcnow)
+    created_at = Column(DateTime(timezone=True), default=_utcnow)
     amount     = Column(Integer, nullable=False)
     reason     = Column(String, nullable=False)
     task_id    = Column(String, ForeignKey("tasks.id"), nullable=True)
@@ -198,7 +198,7 @@ class Reward(Base):
     count         = Column(Integer, nullable=True)
     count_initial = Column(Integer, nullable=True)
     is_active     = Column(Boolean, default=True)
-    created_at    = Column(DateTime, default=_utcnow)
+    created_at    = Column(DateTime(timezone=True), default=_utcnow)
 
     user = relationship("User", back_populates="rewards")
 

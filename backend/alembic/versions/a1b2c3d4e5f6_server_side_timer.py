@@ -21,6 +21,12 @@ def upgrade() -> None:
     op.add_column('tasks', sa.Column('started_at', sa.DateTime(timezone=True), nullable=True))
     op.add_column('day_plans', sa.Column('procrastination_started_at', sa.DateTime(timezone=True), nullable=True))
 
+    op.alter_column('users', 'created_at', type_=sa.DateTime(timezone=True))
+    op.alter_column('tasks', 'created_at', type_=sa.DateTime(timezone=True))
+    op.alter_column('tasks', 'completed_at', type_=sa.DateTime(timezone=True))
+    op.alter_column('coin_transactions', 'created_at', type_=sa.DateTime(timezone=True))
+    op.alter_column('rewards', 'created_at', type_=sa.DateTime(timezone=True))
+
     op.drop_index(op.f('ix_device_events_occurred_at'), table_name='device_events')
     op.drop_index(op.f('ix_device_events_user_id'), table_name='device_events')
     op.drop_table('device_events')
