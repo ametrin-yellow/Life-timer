@@ -30,8 +30,11 @@ export default function TimerPage() {
     )
   }
 
-  const pending = tasks.filter((t) => t.status === 'pending' || t.status === 'active')
-  const done = tasks.filter((t) => t.status === 'completed' || t.status === 'skipped')
+  const sorted = [...tasks].sort((a, b) =>
+    a.position - b.position || a.created_at.localeCompare(b.created_at)
+  )
+  const pending = sorted.filter((t) => t.status === 'pending' || t.status === 'active')
+  const done = sorted.filter((t) => t.status === 'completed' || t.status === 'skipped')
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
