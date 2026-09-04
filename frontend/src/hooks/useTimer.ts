@@ -53,7 +53,7 @@ export function useTimer(): LiveTimerState {
     if (!token) return
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}/ws/timer/ws?token=${token}`
+    const wsUrl = `${protocol}//${window.location.host}/api/timer/ws?token=${token}`
     let ws: WebSocket | null = null
     let reconnectTimer: ReturnType<typeof setTimeout>
 
