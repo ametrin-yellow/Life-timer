@@ -1,0 +1,39 @@
+import { apiFetch } from './client'
+import type { TimerState } from '../types'
+
+export const timerApi = {
+  getState: () => apiFetch<TimerState>('/timer/state'),
+
+  startTask: (taskId: string) =>
+    apiFetch<TimerState>(`/timer/tasks/${taskId}/start`, { method: 'POST' }),
+
+  pauseTask: (taskId: string) =>
+    apiFetch<TimerState>(`/timer/tasks/${taskId}/pause`, { method: 'POST' }),
+
+  completeTask: (taskId: string) =>
+    apiFetch<TimerState>(`/timer/tasks/${taskId}/complete`, { method: 'POST' }),
+
+  skipTask: (taskId: string) =>
+    apiFetch<TimerState>(`/timer/tasks/${taskId}/skip`, { method: 'POST' }),
+}
+
+export const planApi = {
+  createTask: (planId: number, data: {
+    name: string
+    allocated_seconds: number
+    priority?: string
+    scheduled_time?: string
+  }) => apiFetch(`/plans/${planId}/tasks`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  deleteTask: (planId: number, taskId: string) =>
+    apiFetch(`/plans/${planId}/tasks/${taskId}`, { method: 'DELETE' }),
+
+  updateTask: (planId: number, taskId: string, data: Record<string, unknown>) =>
+    apiFetch(`/plans/${planId}/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+}

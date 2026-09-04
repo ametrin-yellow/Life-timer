@@ -1,0 +1,40 @@
+import { formatTime } from '../utils'
+import type { Task } from '../types'
+
+interface Props {
+  activeTask: (Task & { live_elapsed: number }) | null
+  procrastination: number
+  procrastinationRunning: boolean
+}
+
+export default function TimerHeader({ activeTask, procrastination, procrastinationRunning }: Props) {
+  const remaining = activeTask
+    ? activeTask.allocated_seconds - activeTask.live_elapsed
+    : null
+
+  return (
+    <div className="px-4 py-6 border-b border-zinc-800">
+      {activeTask ? (
+        <div className="text-center">
+          <p className="text-zinc-400 text-sm mb-1">{activeTask.name}</p>
+          <p className={`text-5xl font-mono font-bold tabular-nums ${remaining !== null && remaining < 0 ? 'text-red-400' : 'text-white'}`}>
+            {formatTime(remaining ?? 0)}
+          </p>
+        </div>
+      ) : (
+        <div className="text-center">
+          <p className="text-zinc-500 text-sm mb-1">No active task</p>
+          <p className="text-5xl font-mono font-bold tabular-nums text-zinc-600">
+            --:--
+          </p>
+        </div>
+      )}
+      <div className="mt-4 flex justify-center">
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${procrastinationRunning ? 'bg-amber-900/30 text-amber-400' : 'bg-zinc-900 text-zinc-500'}`}>
+          <span className={`w-2 h-2 rounded-full ${procrastinationRunning ? 'bg-amber-400 animate-pulse' : 'bg-zinc-700'}`} />
+          Procrastination: {formatTime(procrastination)}
+        </div>
+      </div>
+    </div>
+  )
+}
