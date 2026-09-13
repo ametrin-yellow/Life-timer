@@ -29,6 +29,9 @@ env/
 *.sublime-project
 *.sublime-workspace
 
+# Vite cache
+.vite/
+
 # OS
 .DS_Store
 Thumbs.db
