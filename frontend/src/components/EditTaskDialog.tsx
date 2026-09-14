@@ -5,7 +5,7 @@ interface Props {
   open: boolean
   task: Task | null
   onClose: () => void
-  onSave: (data: { name: string; allocated_seconds: number; priority: string }) => void
+  onSave: (data: { name: string; allocated_seconds: number; priority: string; is_recurring: boolean }) => void
 }
 
 export default function EditTaskDialog({ open, task, onClose, onSave }: Props) {
@@ -14,11 +14,13 @@ export default function EditTaskDialog({ open, task, onClose, onSave }: Props) {
   const [minutes, setMinutes] = useState(0)
   const [priority, setPriority] = useState('normal')
   const [noDeadline, setNoDeadline] = useState(false)
+  const [isRecurring, setIsRecurring] = useState(false)
 
   useEffect(() => {
     if (task) {
       setName(task.name)
       setNoDeadline(task.allocated_seconds === 0)
+      setIsRecurring(task.is_recurring)
       const h = Math.floor(task.allocated_seconds / 3600)
       const m = Math.floor((task.allocated_seconds % 3600) / 60)
       setHours(h)
@@ -34,7 +36,7 @@ export default function EditTaskDialog({ open, task, onClose, onSave }: Props) {
     if (!name.trim()) return
     const allocated_seconds = noDeadline ? 0 : hours * 3600 + minutes * 60
     if (!noDeadline && allocated_seconds <= 0) return
-    onSave({ name: name.trim(), allocated_seconds, priority })
+    onSave({ name: name.trim(), allocated_seconds, priority, is_recurring: isRecurring })
     onClose()
   }
 
@@ -60,6 +62,15 @@ export default function EditTaskDialog({ open, task, onClose, onSave }: Props) {
               className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-violet-500 focus:ring-violet-500 focus:ring-offset-0"
             />
             <span className="text-sm text-zinc-400">Без дедлайна (просто таймер)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-violet-500 focus:ring-violet-500 focus:ring-offset-0"
+            />
+            <span className="text-sm text-zinc-400">Регулярная (переносится в новый день)</span>
           </label>
           {!noDeadline && (
             <div className="flex gap-3">

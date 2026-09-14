@@ -3,7 +3,7 @@ import { useState } from 'react'
 interface Props {
   open: boolean
   onClose: () => void
-  onAdd: (data: { name: string; allocated_seconds: number; priority: string }) => void
+  onAdd: (data: { name: string; allocated_seconds: number; priority: string; is_recurring: boolean }) => void
 }
 
 export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
@@ -12,6 +12,7 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
   const [minutes, setMinutes] = useState(30)
   const [priority, setPriority] = useState('normal')
   const [noDeadline, setNoDeadline] = useState(false)
+  const [isRecurring, setIsRecurring] = useState(false)
 
   if (!open) return null
 
@@ -20,12 +21,13 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
     if (!name.trim()) return
     const allocated_seconds = noDeadline ? 0 : hours * 3600 + minutes * 60
     if (!noDeadline && allocated_seconds <= 0) return
-    onAdd({ name: name.trim(), allocated_seconds, priority })
+    onAdd({ name: name.trim(), allocated_seconds, priority, is_recurring: isRecurring })
     setName('')
     setHours(0)
     setMinutes(30)
     setPriority('normal')
     setNoDeadline(false)
+    setIsRecurring(false)
     onClose()
   }
 
@@ -51,6 +53,15 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
               className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-violet-500 focus:ring-violet-500 focus:ring-offset-0"
             />
             <span className="text-sm text-zinc-400">Без дедлайна (просто таймер)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-violet-500 focus:ring-violet-500 focus:ring-offset-0"
+            />
+            <span className="text-sm text-zinc-400">Регулярная (переносится в новый день)</span>
           </label>
           {!noDeadline && (
             <div className="flex gap-3">

@@ -1,35 +1,15 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-
 from database import get_db
-from models import User, UserSettings, DayPlan, Task, TaskStatus
+from models import User, DayPlan, Task, TaskStatus
 from schemas import TimerStateResponse, TaskResponse
 from security import get_current_user, decode_token
+from day import utcnow, get_or_create_today_plan
 from ws import manager
 
 router = APIRouter()
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def _user_today(day_start_hour: int = 0) -> date:
-    now = datetime.now(timezone.utc)
-    shifted = now - timedelta(hours=day_start_hour)
-    return shifted.date()
-
-
-async def _get_day_start_hour(user: User, db: AsyncSession) -> int:
-    result = await db.execute(
-        select(UserSettings.day_start_hour).where(UserSettings.user_id == user.id)
-    )
-    row = result.scalar_one_or_none()
-    return row if row is not None else 0
 
 
 def _compute_procrastination(plan: DayPlan, now: datetime) -> int:
@@ -44,26 +24,6 @@ def _find_active_task(plan: DayPlan) -> Task | None:
         if task.started_at is not None:
             return task
     return None
-
-
-async def _get_today_plan(user: User, db: AsyncSession, day_start_hour: int = 0) -> DayPlan:
-    today = _user_today(day_start_hour)
-    result = await db.execute(
-        select(DayPlan)
-        .where(DayPlan.user_id == user.id, DayPlan.date == today)
-        .options(selectinload(DayPlan.tasks))
-    )
-    plan = result.scalar_one_or_none()
-    if not plan:
-        plan = DayPlan(
-            user_id=user.id,
-            date=today,
-            procrastination_started_at=_now(),
-        )
-        db.add(plan)
-        await db.commit()
-        await db.refresh(plan)
-    return plan
 
 
 async def _get_task_in_plan(
@@ -122,9 +82,8 @@ async def get_state(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    dsh = await _get_day_start_hour(current_user, db)
-    plan = await _get_today_plan(current_user, db, dsh)
-    return _build_state(plan, _now())
+    plan = await get_or_create_today_plan(current_user.id, db)
+    return _build_state(plan, utcnow())
 
 
 @router.post("/tasks/{task_id}/start", response_model=TimerStateResponse)
@@ -133,12 +92,11 @@ async def start_task(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    dsh = await _get_day_start_hour(current_user, db)
-    plan = await _get_today_plan(current_user, db, dsh)
+    plan = await get_or_create_today_plan(current_user.id, db)
     if plan.day_finalized:
         raise HTTPException(status_code=400, detail="День финализирован")
 
-    now = _now()
+    now = utcnow()
     task = await _get_task_in_plan(task_id, plan, db)
 
     if task.status in (TaskStatus.COMPLETED, TaskStatus.SKIPPED):
@@ -158,8 +116,8 @@ async def start_task(
     task.started_at = now
 
     await db.commit()
-    state = _build_state(plan, _now())
-    await _broadcast_state(current_user.id, plan, _now())
+    state = _build_state(plan, utcnow())
+    await _broadcast_state(current_user.id, plan, utcnow())
     return state
 
 
@@ -169,9 +127,8 @@ async def pause_task(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    dsh = await _get_day_start_hour(current_user, db)
-    plan = await _get_today_plan(current_user, db, dsh)
-    now = _now()
+    plan = await get_or_create_today_plan(current_user.id, db)
+    now = utcnow()
     task = await _get_task_in_plan(task_id, plan, db)
 
     if task.started_at is None:
@@ -182,8 +139,8 @@ async def pause_task(
     _start_procrastination(plan, now)
 
     await db.commit()
-    state = _build_state(plan, _now())
-    await _broadcast_state(current_user.id, plan, _now())
+    state = _build_state(plan, utcnow())
+    await _broadcast_state(current_user.id, plan, utcnow())
     return state
 
 
@@ -193,9 +150,8 @@ async def complete_task(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    dsh = await _get_day_start_hour(current_user, db)
-    plan = await _get_today_plan(current_user, db, dsh)
-    now = _now()
+    plan = await get_or_create_today_plan(current_user.id, db)
+    now = utcnow()
     task = await _get_task_in_plan(task_id, plan, db)
 
     if task.status in (TaskStatus.COMPLETED, TaskStatus.SKIPPED):
@@ -207,8 +163,8 @@ async def complete_task(
     _start_procrastination(plan, now)
 
     await db.commit()
-    state = _build_state(plan, _now())
-    await _broadcast_state(current_user.id, plan, _now())
+    state = _build_state(plan, utcnow())
+    await _broadcast_state(current_user.id, plan, utcnow())
     return state
 
 
@@ -218,9 +174,8 @@ async def skip_task(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    dsh = await _get_day_start_hour(current_user, db)
-    plan = await _get_today_plan(current_user, db, dsh)
-    now = _now()
+    plan = await get_or_create_today_plan(current_user.id, db)
+    now = utcnow()
     task = await _get_task_in_plan(task_id, plan, db)
 
     if task.status in (TaskStatus.COMPLETED, TaskStatus.SKIPPED):
@@ -231,8 +186,8 @@ async def skip_task(
     _start_procrastination(plan, now)
 
     await db.commit()
-    state = _build_state(plan, _now())
-    await _broadcast_state(current_user.id, plan, _now())
+    state = _build_state(plan, utcnow())
+    await _broadcast_state(current_user.id, plan, utcnow())
     return state
 
 
@@ -242,8 +197,7 @@ async def reopen_task(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    dsh = await _get_day_start_hour(current_user, db)
-    plan = await _get_today_plan(current_user, db, dsh)
+    plan = await get_or_create_today_plan(current_user.id, db)
     if plan.day_finalized:
         raise HTTPException(status_code=400, detail="День финализирован")
 
@@ -256,8 +210,8 @@ async def reopen_task(
     task.completed_at = None
 
     await db.commit()
-    state = _build_state(plan, _now())
-    await _broadcast_state(current_user.id, plan, _now())
+    state = _build_state(plan, utcnow())
+    await _broadcast_state(current_user.id, plan, utcnow())
     return state
 
 

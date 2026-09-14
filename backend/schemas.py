@@ -19,6 +19,7 @@ class TaskCreate(BaseModel):
     scheduled_time: Optional[str] = None   # "HH:MM"
     position: int = 0
     priority: Priority = Priority.NORMAL
+    is_recurring: bool = False
 
     @field_validator("allocated_seconds")
     @classmethod
@@ -38,6 +39,7 @@ class TaskUpdate(BaseModel):
     overrun_seconds: Optional[int] = None
     status: Optional[TaskStatus] = None
     completed_at: Optional[datetime] = None
+    is_recurring: Optional[bool] = None
     coins_earned: Optional[int] = None
     coins_penalty: Optional[int] = None
 
@@ -53,6 +55,7 @@ class TaskResponse(BaseModel):
     scheduled_time: Optional[str]
     position: int
     priority: Priority
+    is_recurring: bool
     coins_earned: int
     coins_penalty: int
     started_at: Optional[datetime] = None

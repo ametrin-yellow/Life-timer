@@ -71,6 +71,11 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
           <span className={`text-sm truncate ${isDone ? 'line-through text-zinc-500' : 'text-white'}`}>
             {task.name}
           </span>
+          {task.is_recurring && (
+            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400">
+              ↻
+            </span>
+          )}
           {task.priority !== 'normal' && (
             <span className={`text-xs px-1.5 py-0.5 rounded ${task.priority === 'high' ? 'bg-red-900/30 text-red-400' : 'bg-zinc-800 text-zinc-500'}`}>
               {priorityLabel(task.priority)}

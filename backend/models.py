@@ -148,6 +148,7 @@ class Task(Base):
     scheduled_time    = Column(String, nullable=True)
     position          = Column(Integer, default=0)
     priority          = Column(SAEnum(Priority), default=Priority.NORMAL)
+    is_recurring      = Column(Boolean, default=False)
     coins_earned      = Column(Integer, default=0)
     coins_penalty     = Column(Integer, default=0)
     started_at        = Column(DateTime(timezone=True), nullable=True)
