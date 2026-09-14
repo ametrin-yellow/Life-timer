@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import { formatTime, priorityLabel } from '../utils'
 import type { Task } from '../types'
 
@@ -25,6 +26,25 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
   const remaining = hasDeadline ? task.allocated_seconds - task.live_elapsed : 0
   const progress = hasDeadline ? Math.min(100, (task.live_elapsed / task.allocated_seconds) * 100) : 0
   const overrun = hasDeadline && remaining < 0
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [menuOpen])
+
+  function menuAction(fn: () => void) {
+    setMenuOpen(false)
+    fn()
+  }
 
   return (
     <div
@@ -100,61 +120,65 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
         )}
       </div>
 
-      <div className="shrink-0 flex gap-1">
-        {isDone ? (
-          <>
-            <button
-              onClick={onReopen}
-              disabled={disabled}
-              className="px-2 py-1 text-xs bg-violet-900/30 text-violet-400 rounded hover:bg-violet-900/50 transition-colors disabled:opacity-50"
-              title="Вернуть в список"
-            >
-              Вернуть
-            </button>
-            <button
-              onClick={onDelete}
-              disabled={disabled}
-              className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
-              title="Удалить"
-            >
-              ×
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={onEdit}
-              disabled={disabled}
-              className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
-              title="Редактировать"
-            >
-              ✎
-            </button>
-            <button
-              onClick={onComplete}
-              disabled={disabled}
-              className="px-2 py-1 text-xs bg-emerald-900/30 text-emerald-400 rounded hover:bg-emerald-900/50 transition-colors disabled:opacity-50"
-              title="Завершить"
-            >
-              Готово
-            </button>
-            <button
-              onClick={onSkip}
-              disabled={disabled}
-              className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
-              title="Пропустить"
-            >
-              Проп.
-            </button>
-            <button
-              onClick={onDelete}
-              disabled={disabled}
-              className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
-              title="Удалить"
-            >
-              ×
-            </button>
-          </>
+      <div className="shrink-0 relative" ref={menuRef}>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+        >
+          ⋮
+        </button>
+        {menuOpen && (
+          <div className="absolute right-0 top-full mt-1 z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[140px]">
+            {isDone ? (
+              <>
+                <button
+                  onClick={() => menuAction(onReopen)}
+                  disabled={disabled}
+                  className="w-full text-left px-3 py-2 text-sm text-violet-400 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  Вернуть
+                </button>
+                <button
+                  onClick={() => menuAction(onDelete)}
+                  disabled={disabled}
+                  className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  Удалить
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => menuAction(onEdit)}
+                  disabled={disabled}
+                  className="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  Редактировать
+                </button>
+                <button
+                  onClick={() => menuAction(onComplete)}
+                  disabled={disabled}
+                  className="w-full text-left px-3 py-2 text-sm text-emerald-400 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  Готово
+                </button>
+                <button
+                  onClick={() => menuAction(onSkip)}
+                  disabled={disabled}
+                  className="w-full text-left px-3 py-2 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  Пропустить
+                </button>
+                <button
+                  onClick={() => menuAction(onDelete)}
+                  disabled={disabled}
+                  className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  Удалить
+                </button>
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
