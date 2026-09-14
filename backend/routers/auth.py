@@ -44,6 +44,9 @@ class RefreshRequest(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: str
+    has_password: bool = False
+    has_google: bool = False
+    has_telegram: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -249,6 +252,52 @@ async def change_password(
     return {"ok": True}
 
 
+@router.post("/link-telegram")
+async def link_telegram(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not app_settings.telegram_bot_token:
+        raise HTTPException(status_code=501, detail="Telegram Login не настроен")
+
+    raw = await request.json()
+    if not _verify_telegram_auth(raw, app_settings.telegram_bot_token):
+        raise HTTPException(status_code=401, detail="Невалидные данные Telegram")
+
+    tg_id = str(raw["id"])
+
+    result = await db.execute(select(User).where(User.telegram_id == tg_id))
+    existing = result.scalar_one_or_none()
+    if existing and existing.id != current_user.id:
+        raise HTTPException(status_code=400, detail="Этот Telegram аккаунт уже привязан к другому пользователю")
+
+    current_user.telegram_id = tg_id
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/unlink-telegram")
+async def unlink_telegram(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.telegram_id:
+        raise HTTPException(status_code=400, detail="Telegram не привязан")
+    if not current_user.hashed_password and not current_user.google_id:
+        raise HTTPException(status_code=400, detail="Нельзя отвязать единственный способ входа")
+
+    current_user.telegram_id = None
+    await db.commit()
+    return {"ok": True}
+
+
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)):
-    return current_user
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        has_password=current_user.hashed_password is not None,
+        has_google=current_user.google_id is not None,
+        has_telegram=current_user.telegram_id is not None,
+    )

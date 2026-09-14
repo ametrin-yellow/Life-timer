@@ -48,6 +48,21 @@ export async function googleAuth(credential: string): Promise<AuthTokens> {
   return res.json()
 }
 
+export async function getMe() {
+  return apiFetch<{ id: number; email: string; has_password: boolean; has_google: boolean; has_telegram: boolean }>('/auth/me')
+}
+
+export async function linkTelegram(data: Record<string, unknown>): Promise<void> {
+  await apiFetch('/auth/link-telegram', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function unlinkTelegram(): Promise<void> {
+  await apiFetch('/auth/unlink-telegram', { method: 'POST' })
+}
+
 export async function telegramAuth(data: Record<string, unknown>): Promise<AuthTokens> {
   const res = await fetch('/api/auth/telegram', {
     method: 'POST',

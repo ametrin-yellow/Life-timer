@@ -6,7 +6,7 @@ import TimerHeader from '../components/TimerHeader'
 import TaskRow from '../components/TaskRow'
 import AddTaskDialog from '../components/AddTaskDialog'
 import EditTaskDialog from '../components/EditTaskDialog'
-import ChangePasswordDialog from '../components/ChangePasswordDialog'
+import SettingsDialog from '../components/SettingsDialog'
 import type { Task } from '../types'
 
 interface Props {
@@ -176,7 +176,7 @@ export default function TimerPage({ onStats }: Props) {
         )}
       </div>
 
-      <ChangePasswordDialog
+      <SettingsDialog
         open={showPassword}
         onClose={() => setShowPassword(false)}
       />
