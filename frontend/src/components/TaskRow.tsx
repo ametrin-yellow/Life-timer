@@ -28,7 +28,7 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
 
   return (
     <div
-      className={`group flex items-center gap-3 px-4 py-3 border-b border-zinc-800/50 transition-colors ${isDone ? 'opacity-50' : 'hover:bg-zinc-900/50'} ${dragOver ? 'border-t-2 border-t-violet-500' : ''}`}
+      className={`flex items-center gap-3 px-4 py-3 border-b border-zinc-800/50 transition-colors ${isDone ? 'opacity-50' : 'hover:bg-zinc-900/50'} ${dragOver ? 'border-t-2 border-t-violet-500' : ''}`}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
@@ -100,7 +100,7 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
         )}
       </div>
 
-      <div className="shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="shrink-0 flex gap-1">
         {isDone ? (
           <>
             <button
