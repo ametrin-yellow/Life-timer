@@ -81,7 +81,9 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
               {priorityLabel(task.priority)}
             </span>
           )}
-          <span className={`shrink-0 ml-auto font-mono text-sm tabular-nums ${overrun ? 'text-red-400' : 'text-zinc-400'}`}>
+        </div>
+        <div className="flex items-center gap-1 mt-0.5">
+          <span className={`font-mono text-xs tabular-nums ${overrun ? 'text-red-400' : 'text-zinc-500'}`}>
             {formatTime(task.live_elapsed)}
             {hasDeadline && (
               <span className="text-zinc-600"> / {formatTime(task.allocated_seconds)}</span>
@@ -89,7 +91,7 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
           </span>
         </div>
         {!isDone && hasDeadline && (
-          <div className="mt-1.5 h-1 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="mt-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${overrun ? 'bg-red-500' : isActive ? 'bg-violet-500' : 'bg-zinc-600'}`}
               style={{ width: `${Math.min(progress, 100)}%` }}
