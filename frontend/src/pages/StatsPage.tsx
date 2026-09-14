@@ -125,7 +125,7 @@ export default function StatsPage({ onBack }: Props) {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => formatTime(value)}
+                        formatter={(value) => formatTime(Number(value))}
                         contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '8px', color: '#fff' }}
                       />
                     </PieChart>
