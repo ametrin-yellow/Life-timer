@@ -14,13 +14,22 @@ const COLORS = [
 ]
 const PROCRASTINATION_COLOR = '#f59e0b'
 
-function formatDate(dateStr: string): string {
+function formatDateShort(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
+function formatDateFull(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })
+}
+
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+function planProductiveTime(plan: DayPlan): number {
+  return plan.tasks.reduce((s, t) => s + t.elapsed_seconds, 0)
 }
 
 export default function StatsPage({ onBack }: Props) {
@@ -29,10 +38,7 @@ export default function StatsPage({ onBack }: Props) {
   const [selectedDate, setSelectedDate] = useState(todayStr())
 
   useEffect(() => {
-    const now = new Date()
-    const from = new Date(now)
-    from.setDate(from.getDate() - 13)
-    statsApi.getPlans(from.toISOString().slice(0, 10), todayStr())
+    statsApi.getPlans()
       .then(setPlans)
       .finally(() => setLoading(false))
   }, [])
@@ -63,16 +69,10 @@ export default function StatsPage({ onBack }: Props) {
 
   const totalTime = totalProductive + (plan?.procrastination_used ?? 0)
 
-  const availableDates = useMemo(() => {
-    const dates: string[] = []
-    const now = new Date()
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(now)
-      d.setDate(d.getDate() - i)
-      dates.push(d.toISOString().slice(0, 10))
-    }
-    return dates
-  }, [])
+  const sortedPlans = useMemo(
+    () => [...plans].sort((a, b) => b.date.localeCompare(a.date)),
+    [plans],
+  )
 
   if (loading) {
     return (
@@ -93,46 +93,30 @@ export default function StatsPage({ onBack }: Props) {
       </div>
 
       <div className="max-w-2xl mx-auto">
-        {/* Date selector */}
-        <div className="px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
-          {availableDates.map((d) => {
-            const hasPlan = plans.some((p) => p.date === d)
-            return (
-              <button
-                key={d}
-                onClick={() => setSelectedDate(d)}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                  selectedDate === d
-                    ? 'bg-violet-600 text-white'
-                    : hasPlan
-                      ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                      : 'bg-zinc-900 text-zinc-600'
-                }`}
-              >
-                {d === todayStr() ? 'Сегодня' : formatDate(d)}
-              </button>
-            )
-          })}
+        {/* Selected day header */}
+        <div className="px-4 pt-4 pb-2">
+          <h2 className="text-sm text-zinc-400">
+            {selectedDate === todayStr() ? 'Сегодня' : formatDateFull(selectedDate)}
+          </h2>
         </div>
 
         {!plan ? (
-          <div className="text-center py-16 text-zinc-600">
+          <div className="text-center py-12 text-zinc-600">
             Нет данных за этот день
           </div>
         ) : (
           <>
-            {/* Pie chart */}
             {chartData.length > 0 ? (
               <div className="px-4 py-4">
-                <div className="h-64">
+                <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={chartData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
+                        innerRadius={55}
+                        outerRadius={90}
                         paddingAngle={2}
                         dataKey="value"
                       >
@@ -148,7 +132,6 @@ export default function StatsPage({ onBack }: Props) {
                   </ResponsiveContainer>
                 </div>
 
-                {/* Summary */}
                 <div className="flex justify-center gap-8 mt-2">
                   <div className="text-center">
                     <p className="text-xs text-zinc-500">Продуктивно</p>
@@ -234,28 +217,69 @@ export default function StatsPage({ onBack }: Props) {
                 )}
               </div>
             </div>
-
-            {/* Completed tasks list */}
-            {plan.tasks.filter((t) => t.status === 'completed' || t.status === 'skipped').length > 0 && (
-              <div className="px-4 py-4 border-t border-zinc-800/50">
-                <h2 className="text-sm text-zinc-500 mb-3">Завершённые</h2>
-                <div className="space-y-1">
-                  {plan.tasks
-                    .filter((t) => t.status === 'completed' || t.status === 'skipped')
-                    .map((task) => (
-                      <div key={task.id} className="flex items-center gap-2 py-1">
-                        <span className={`text-xs ${task.status === 'completed' ? 'text-emerald-500' : 'text-zinc-600'}`}>
-                          {task.status === 'completed' ? '✓' : '—'}
-                        </span>
-                        <span className="text-sm text-zinc-400 truncate flex-1">{task.name}</span>
-                        <span className="text-xs font-mono text-zinc-600">{formatTime(task.elapsed_seconds)}</span>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
           </>
         )}
+
+        {/* History list */}
+        <div className="px-4 py-4 border-t border-zinc-800">
+          <h2 className="text-sm text-zinc-500 mb-3">История</h2>
+          {sortedPlans.length === 0 ? (
+            <p className="text-zinc-600 text-sm">Пока нет записей</p>
+          ) : (
+            <div className="space-y-1">
+              {sortedPlans.map((p) => {
+                const productive = planProductiveTime(p)
+                const total = productive + p.procrastination_used
+                const completedCount = p.tasks.filter((t) => t.status === 'completed').length
+                const totalTasks = p.tasks.length
+                const isSelected = p.date === selectedDate
+                const productivePct = total > 0 ? Math.round((productive / total) * 100) : 0
+
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedDate(p.date)}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
+                      isSelected
+                        ? 'bg-violet-600/20 border border-violet-500/30'
+                        : 'hover:bg-zinc-900 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-medium">
+                        {p.date === todayStr() ? 'Сегодня' : formatDateShort(p.date)}
+                      </span>
+                      <span className="text-xs text-zinc-500">
+                        {completedCount}/{totalTasks} задач
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-full flex">
+                          {productive > 0 && (
+                            <div
+                              className="h-full bg-violet-500"
+                              style={{ width: `${productivePct}%` }}
+                            />
+                          )}
+                          {p.procrastination_used > 0 && (
+                            <div
+                              className="h-full bg-amber-500"
+                              style={{ width: `${100 - productivePct}%` }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs font-mono text-zinc-500 shrink-0 w-12 text-right">
+                        {formatTime(total)}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
