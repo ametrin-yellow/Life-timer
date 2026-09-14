@@ -68,7 +68,7 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`text-sm truncate ${isDone ? 'line-through text-zinc-500' : 'text-white'}`}>
+          <span className={`flex-1 min-w-0 text-sm truncate ${isDone ? 'line-through text-zinc-500' : 'text-white'}`}>
             {task.name}
           </span>
           {task.is_recurring && (
