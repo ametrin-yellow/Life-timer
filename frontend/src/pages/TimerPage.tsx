@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useTimer } from '../hooks/useTimer'
 import { useAuth } from '../hooks/useAuth'
 import { timerApi, planApi } from '../api/timer'
@@ -16,6 +16,8 @@ export default function TimerPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const dragIdRef = useRef<string | null>(null)
 
   const wrap = useCallback(async (fn: () => Promise<unknown>) => {
     setBusy(true)
@@ -40,6 +42,41 @@ export default function TimerPage() {
   )
   const pending = sorted.filter((t) => t.status === 'pending' || t.status === 'active')
   const done = sorted.filter((t) => t.status === 'completed' || t.status === 'skipped')
+
+  function handleDragStart(taskId: string) {
+    dragIdRef.current = taskId
+  }
+
+  function handleDragOver(e: React.DragEvent, taskId: string) {
+    e.preventDefault()
+    if (dragIdRef.current && dragIdRef.current !== taskId) {
+      setDragOverId(taskId)
+    }
+  }
+
+  function handleDragEnd() {
+    if (!state || !dragIdRef.current || !dragOverId) {
+      dragIdRef.current = null
+      setDragOverId(null)
+      return
+    }
+
+    const fromId = dragIdRef.current
+    const toId = dragOverId
+    dragIdRef.current = null
+    setDragOverId(null)
+
+    const ids = pending.map((t) => t.id)
+    const fromIdx = ids.indexOf(fromId)
+    const toIdx = ids.indexOf(toId)
+    if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return
+
+    ids.splice(fromIdx, 1)
+    ids.splice(toIdx, 0, fromId)
+
+    const allIds = [...ids, ...done.map((t) => t.id)]
+    wrap(() => planApi.reorderTasks(state.plan_id, allIds))
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -89,6 +126,14 @@ export default function TimerPage() {
             onDelete={() => state && wrap(() => planApi.deleteTask(state.plan_id, task.id))}
             onEdit={() => setEditingTask(task)}
             disabled={busy}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = 'move'
+              handleDragStart(task.id)
+            }}
+            onDragOver={(e) => handleDragOver(e, task.id)}
+            onDragEnd={handleDragEnd}
+            dragOver={dragOverId === task.id}
           />
         ))}
 

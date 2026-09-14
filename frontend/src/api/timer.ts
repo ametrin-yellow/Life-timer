@@ -36,4 +36,10 @@ export const planApi = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+
+  reorderTasks: (planId: number, taskIds: string[]) =>
+    apiFetch(`/plans/${planId}/tasks/reorder`, {
+      method: 'POST',
+      body: JSON.stringify(taskIds),
+    }),
 }

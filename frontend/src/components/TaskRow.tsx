@@ -11,9 +11,14 @@ interface Props {
   onDelete: () => void
   onEdit: () => void
   disabled: boolean
+  draggable?: boolean
+  onDragStart?: (e: React.DragEvent) => void
+  onDragOver?: (e: React.DragEvent) => void
+  onDragEnd?: () => void
+  dragOver?: boolean
 }
 
-export default function TaskRow({ task, isActive, onStart, onPause, onComplete, onSkip, onDelete, onEdit, disabled }: Props) {
+export default function TaskRow({ task, isActive, onStart, onPause, onComplete, onSkip, onDelete, onEdit, disabled, draggable, onDragStart, onDragOver, onDragEnd, dragOver }: Props) {
   const isDone = task.status === 'completed' || task.status === 'skipped'
   const hasDeadline = task.allocated_seconds > 0
   const remaining = hasDeadline ? task.allocated_seconds - task.live_elapsed : 0
@@ -21,7 +26,19 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
   const overrun = hasDeadline && remaining < 0
 
   return (
-    <div className={`group flex items-center gap-3 px-4 py-3 border-b border-zinc-800/50 transition-colors ${isDone ? 'opacity-50' : 'hover:bg-zinc-900/50'}`}>
+    <div
+      className={`group flex items-center gap-3 px-4 py-3 border-b border-zinc-800/50 transition-colors ${isDone ? 'opacity-50' : 'hover:bg-zinc-900/50'} ${dragOver ? 'border-t-2 border-t-violet-500' : ''}`}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+    >
+      {draggable && (
+        <div className="shrink-0 cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 select-none" title="Перетащить">
+          ⠿
+        </div>
+      )}
+
       <div className="shrink-0">
         {isDone ? (
           <span className="w-9 h-9 flex items-center justify-center text-zinc-600">
