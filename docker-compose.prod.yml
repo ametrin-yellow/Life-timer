@@ -23,6 +23,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://lifetimer:${POSTGRES_PASSWORD}@postgres/lifetimer
       SECRET_KEY: ${SECRET_KEY}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
     expose:
       - "8000"
 
