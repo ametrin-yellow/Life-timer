@@ -10,6 +10,7 @@ alembic>=1.13.0
 # Auth
 python-jose[cryptography]>=3.3.0   # JWT
 bcrypt==4.0.1              # хэширование паролей
+google-auth>=2.29.0        # Google OAuth ID token verification
 
 # Конфиг
 pydantic-settings>=2.0.0

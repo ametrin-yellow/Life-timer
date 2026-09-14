@@ -66,7 +66,9 @@ class User(Base):
 
     id            = Column(Integer, primary_key=True, autoincrement=True)
     email         = Column(String, unique=True, nullable=False, index=True)
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=True)
+    google_id     = Column(String, unique=True, nullable=True, index=True)
+    telegram_id   = Column(String, unique=True, nullable=True, index=True)
     created_at    = Column(DateTime(timezone=True), default=_utcnow)
     is_active     = Column(Boolean, default=True)
 

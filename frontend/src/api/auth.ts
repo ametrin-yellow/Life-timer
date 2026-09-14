@@ -34,3 +34,29 @@ export async function register(email: string, password: string): Promise<AuthTok
   }
   return res.json()
 }
+
+export async function googleAuth(credential: string): Promise<AuthTokens> {
+  const res = await fetch('/api/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(text)
+  }
+  return res.json()
+}
+
+export async function telegramAuth(data: Record<string, unknown>): Promise<AuthTokens> {
+  const res = await fetch('/api/auth/telegram', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(text)
+  }
+  return res.json()
+}

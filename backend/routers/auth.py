@@ -1,10 +1,17 @@
+import hashlib
+import hmac
+import time
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, EmailStr
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 
 from database import get_db
+from config import settings as app_settings
 from models import User, UserSettings, CoinBalance
 from security import (
     hash_password, verify_password,
@@ -90,6 +97,120 @@ async def login(
     )
 
 
+@router.get("/google-client-id")
+async def google_client_id():
+    return {"client_id": app_settings.google_client_id or None}
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: str
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_auth(data: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
+    if not app_settings.google_client_id:
+        raise HTTPException(status_code=501, detail="Google OAuth не настроен")
+
+    try:
+        idinfo = google_id_token.verify_oauth2_token(
+            data.credential,
+            google_requests.Request(),
+            app_settings.google_client_id,
+        )
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Невалидный Google токен")
+
+    google_id = idinfo["sub"]
+    email = idinfo.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Google аккаунт без email")
+
+    result = await db.execute(select(User).where(User.google_id == google_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+        if user:
+            user.google_id = google_id
+        else:
+            user = User(email=email, google_id=google_id)
+            db.add(user)
+            await db.flush()
+            db.add(UserSettings(user_id=user.id))
+            db.add(CoinBalance(user_id=user.id))
+
+        await db.commit()
+
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Аккаунт деактивирован")
+
+    return TokenResponse(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
+
+
+@router.get("/telegram-bot")
+async def telegram_bot():
+    return {"bot_username": app_settings.telegram_bot_username or None}
+
+
+class TelegramAuthRequest(BaseModel):
+    id: int
+    first_name: str | None = None
+    last_name: str | None = None
+    username: str | None = None
+    photo_url: str | None = None
+    auth_date: int
+    hash: str
+
+
+def _verify_telegram_auth(data: dict, bot_token: str) -> bool:
+    check_hash = data.pop("hash")
+    check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()) if v is not None)
+    secret_key = hashlib.sha256(bot_token.encode()).digest()
+    computed = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
+    if computed != check_hash:
+        return False
+    if time.time() - data["auth_date"] > 86400:
+        return False
+    return True
+
+
+@router.post("/telegram", response_model=TokenResponse)
+async def telegram_auth(data: TelegramAuthRequest, db: AsyncSession = Depends(get_db)):
+    if not app_settings.telegram_bot_token:
+        raise HTTPException(status_code=501, detail="Telegram Login не настроен")
+
+    auth_data = data.model_dump()
+    if not _verify_telegram_auth(auth_data, app_settings.telegram_bot_token):
+        raise HTTPException(status_code=401, detail="Невалидные данные Telegram")
+
+    tg_id = str(data.id)
+
+    result = await db.execute(select(User).where(User.telegram_id == tg_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        tg_name = data.username or data.first_name or str(data.id)
+        email = f"tg_{data.id}@telegram.local"
+        user = User(email=email, telegram_id=tg_id)
+        db.add(user)
+        await db.flush()
+        db.add(UserSettings(user_id=user.id))
+        db.add(CoinBalance(user_id=user.id))
+        await db.commit()
+
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Аккаунт деактивирован")
+
+    return TokenResponse(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
+
+
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
     user_id = decode_token(data.refresh_token, expected_type="refresh")
@@ -116,6 +237,8 @@ async def change_password(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if not current_user.hashed_password:
+        raise HTTPException(status_code=400, detail="Аккаунт использует Google вход. Установите пароль через настройки.")
     if not verify_password(data.current_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Неверный текущий пароль")
 
