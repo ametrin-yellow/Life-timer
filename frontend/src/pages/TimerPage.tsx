@@ -133,6 +133,7 @@ export default function TimerPage({ onStats }: Props) {
             onPause={() => wrap(() => timerApi.pauseTask(task.id))}
             onComplete={() => wrap(() => timerApi.completeTask(task.id))}
             onSkip={() => wrap(() => timerApi.skipTask(task.id))}
+            onReopen={() => wrap(() => timerApi.reopenTask(task.id))}
             onDelete={() => state && wrap(() => planApi.deleteTask(state.plan_id, task.id))}
             onEdit={() => setEditingTask(task)}
             disabled={busy}
@@ -161,6 +162,7 @@ export default function TimerPage({ onStats }: Props) {
                 onPause={() => {}}
                 onComplete={() => {}}
                 onSkip={() => {}}
+                onReopen={() => wrap(() => timerApi.reopenTask(task.id))}
                 onDelete={() => state && wrap(() => planApi.deleteTask(state.plan_id, task.id))}
                 onEdit={() => {}}
                 disabled={busy}

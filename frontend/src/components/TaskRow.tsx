@@ -8,6 +8,7 @@ interface Props {
   onPause: () => void
   onComplete: () => void
   onSkip: () => void
+  onReopen: () => void
   onDelete: () => void
   onEdit: () => void
   disabled: boolean
@@ -18,7 +19,7 @@ interface Props {
   dragOver?: boolean
 }
 
-export default function TaskRow({ task, isActive, onStart, onPause, onComplete, onSkip, onDelete, onEdit, disabled, draggable, onDragStart, onDragOver, onDragEnd, dragOver }: Props) {
+export default function TaskRow({ task, isActive, onStart, onPause, onComplete, onSkip, onReopen, onDelete, onEdit, disabled, draggable, onDragStart, onDragOver, onDragEnd, dragOver }: Props) {
   const isDone = task.status === 'completed' || task.status === 'skipped'
   const hasDeadline = task.allocated_seconds > 0
   const remaining = hasDeadline ? task.allocated_seconds - task.live_elapsed : 0
@@ -95,42 +96,63 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
         )}
       </div>
 
-      {!isDone && (
-        <div className="shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={onEdit}
-            disabled={disabled}
-            className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
-            title="Редактировать"
-          >
-            ✎
-          </button>
-          <button
-            onClick={onComplete}
-            disabled={disabled}
-            className="px-2 py-1 text-xs bg-emerald-900/30 text-emerald-400 rounded hover:bg-emerald-900/50 transition-colors disabled:opacity-50"
-            title="Завершить"
-          >
-            Готово
-          </button>
-          <button
-            onClick={onSkip}
-            disabled={disabled}
-            className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
-            title="Пропустить"
-          >
-            Проп.
-          </button>
-          <button
-            onClick={onDelete}
-            disabled={disabled}
-            className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
-            title="Удалить"
-          >
-            ×
-          </button>
-        </div>
-      )}
+      <div className="shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {isDone ? (
+          <>
+            <button
+              onClick={onReopen}
+              disabled={disabled}
+              className="px-2 py-1 text-xs bg-violet-900/30 text-violet-400 rounded hover:bg-violet-900/50 transition-colors disabled:opacity-50"
+              title="Вернуть в список"
+            >
+              Вернуть
+            </button>
+            <button
+              onClick={onDelete}
+              disabled={disabled}
+              className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
+              title="Удалить"
+            >
+              ×
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={onEdit}
+              disabled={disabled}
+              className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
+              title="Редактировать"
+            >
+              ✎
+            </button>
+            <button
+              onClick={onComplete}
+              disabled={disabled}
+              className="px-2 py-1 text-xs bg-emerald-900/30 text-emerald-400 rounded hover:bg-emerald-900/50 transition-colors disabled:opacity-50"
+              title="Завершить"
+            >
+              Готово
+            </button>
+            <button
+              onClick={onSkip}
+              disabled={disabled}
+              className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
+              title="Пропустить"
+            >
+              Проп.
+            </button>
+            <button
+              onClick={onDelete}
+              disabled={disabled}
+              className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
+              title="Удалить"
+            >
+              ×
+            </button>
+          </>
+        )}
+      </div>
     </div>
   )
 }

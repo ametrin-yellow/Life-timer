@@ -15,6 +15,9 @@ export const timerApi = {
 
   skipTask: (taskId: string) =>
     apiFetch<TimerState>(`/timer/tasks/${taskId}/skip`, { method: 'POST' }),
+
+  reopenTask: (taskId: string) =>
+    apiFetch<TimerState>(`/timer/tasks/${taskId}/reopen`, { method: 'POST' }),
 }
 
 export const statsApi = {

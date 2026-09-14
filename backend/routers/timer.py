@@ -217,6 +217,30 @@ async def skip_task(
     return state
 
 
+@router.post("/tasks/{task_id}/reopen", response_model=TimerStateResponse)
+async def reopen_task(
+    task_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    plan = await _get_today_plan(current_user, db)
+    if plan.day_finalized:
+        raise HTTPException(status_code=400, detail="День финализирован")
+
+    task = await _get_task_in_plan(task_id, plan, db)
+
+    if task.status not in (TaskStatus.COMPLETED, TaskStatus.SKIPPED):
+        raise HTTPException(status_code=400, detail="Задача не завершена")
+
+    task.status = TaskStatus.PENDING
+    task.completed_at = None
+
+    await db.commit()
+    state = _build_state(plan, _now())
+    await _broadcast_state(current_user.id, plan, _now())
+    return state
+
+
 # ──────────────────────────────────────────────
 #  WebSocket
 # ──────────────────────────────────────────────
