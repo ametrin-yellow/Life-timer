@@ -5,7 +5,9 @@ import { timerApi, planApi } from '../api/timer'
 import TimerHeader from '../components/TimerHeader'
 import TaskRow from '../components/TaskRow'
 import AddTaskDialog from '../components/AddTaskDialog'
+import EditTaskDialog from '../components/EditTaskDialog'
 import ChangePasswordDialog from '../components/ChangePasswordDialog'
+import type { Task } from '../types'
 
 export default function TimerPage() {
   const { logout } = useAuth()
@@ -13,6 +15,7 @@ export default function TimerPage() {
   const [busy, setBusy] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
 
   const wrap = useCallback(async (fn: () => Promise<unknown>) => {
     setBusy(true)
@@ -40,7 +43,6 @@ export default function TimerPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
         <h1 className="text-lg font-bold">Life Timer</h1>
         <div className="flex items-center gap-4">
@@ -65,9 +67,7 @@ export default function TimerPage() {
         procrastinationRunning={state?.procrastination_running ?? false}
       />
 
-      {/* Task list */}
       <div className="max-w-2xl mx-auto">
-        {/* Add task button */}
         <div className="px-4 py-3">
           <button
             onClick={() => setShowAdd(true)}
@@ -77,7 +77,6 @@ export default function TimerPage() {
           </button>
         </div>
 
-        {/* Active / pending tasks */}
         {pending.map((task) => (
           <TaskRow
             key={task.id}
@@ -88,11 +87,11 @@ export default function TimerPage() {
             onComplete={() => wrap(() => timerApi.completeTask(task.id))}
             onSkip={() => wrap(() => timerApi.skipTask(task.id))}
             onDelete={() => state && wrap(() => planApi.deleteTask(state.plan_id, task.id))}
+            onEdit={() => setEditingTask(task)}
             disabled={busy}
           />
         ))}
 
-        {/* Completed / skipped tasks */}
         {done.length > 0 && (
           <>
             <div className="px-4 py-2 mt-2">
@@ -108,6 +107,7 @@ export default function TimerPage() {
                 onComplete={() => {}}
                 onSkip={() => {}}
                 onDelete={() => state && wrap(() => planApi.deleteTask(state.plan_id, task.id))}
+                onEdit={() => {}}
                 disabled={busy}
               />
             ))}
@@ -132,6 +132,16 @@ export default function TimerPage() {
         onAdd={(data) => {
           if (!state) return
           wrap(() => planApi.createTask(state.plan_id, data))
+        }}
+      />
+
+      <EditTaskDialog
+        open={editingTask !== null}
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onSave={(data) => {
+          if (!state || !editingTask) return
+          wrap(() => planApi.updateTask(state.plan_id, editingTask.id, data))
         }}
       />
     </div>

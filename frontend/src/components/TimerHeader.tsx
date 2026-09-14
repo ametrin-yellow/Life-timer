@@ -8,7 +8,8 @@ interface Props {
 }
 
 export default function TimerHeader({ activeTask, procrastination, procrastinationRunning }: Props) {
-  const remaining = activeTask
+  const hasDeadline = activeTask ? activeTask.allocated_seconds > 0 : false
+  const remaining = activeTask && hasDeadline
     ? activeTask.allocated_seconds - activeTask.live_elapsed
     : null
 
@@ -17,9 +18,15 @@ export default function TimerHeader({ activeTask, procrastination, procrastinati
       {activeTask ? (
         <div className="text-center">
           <p className="text-zinc-400 text-sm mb-1">{activeTask.name}</p>
-          <p className={`text-5xl font-mono font-bold tabular-nums ${remaining !== null && remaining < 0 ? 'text-red-400' : 'text-white'}`}>
-            {formatTime(remaining ?? 0)}
-          </p>
+          {hasDeadline ? (
+            <p className={`text-5xl font-mono font-bold tabular-nums ${remaining !== null && remaining < 0 ? 'text-red-400' : 'text-white'}`}>
+              {formatTime(remaining ?? 0)}
+            </p>
+          ) : (
+            <p className="text-5xl font-mono font-bold tabular-nums text-white">
+              {formatTime(activeTask.live_elapsed)}
+            </p>
+          )}
         </div>
       ) : (
         <div className="text-center">

@@ -9,18 +9,19 @@ interface Props {
   onComplete: () => void
   onSkip: () => void
   onDelete: () => void
+  onEdit: () => void
   disabled: boolean
 }
 
-export default function TaskRow({ task, isActive, onStart, onPause, onComplete, onSkip, onDelete, disabled }: Props) {
+export default function TaskRow({ task, isActive, onStart, onPause, onComplete, onSkip, onDelete, onEdit, disabled }: Props) {
   const isDone = task.status === 'completed' || task.status === 'skipped'
-  const remaining = task.allocated_seconds - task.live_elapsed
-  const progress = Math.min(100, (task.live_elapsed / task.allocated_seconds) * 100)
-  const overrun = remaining < 0
+  const hasDeadline = task.allocated_seconds > 0
+  const remaining = hasDeadline ? task.allocated_seconds - task.live_elapsed : 0
+  const progress = hasDeadline ? Math.min(100, (task.live_elapsed / task.allocated_seconds) * 100) : 0
+  const overrun = hasDeadline && remaining < 0
 
   return (
     <div className={`group flex items-center gap-3 px-4 py-3 border-b border-zinc-800/50 transition-colors ${isDone ? 'opacity-50' : 'hover:bg-zinc-900/50'}`}>
-      {/* Play/Pause button */}
       <div className="shrink-0">
         {isDone ? (
           <span className="w-9 h-9 flex items-center justify-center text-zinc-600">
@@ -47,7 +48,6 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
         )}
       </div>
 
-      {/* Task info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className={`text-sm truncate ${isDone ? 'line-through text-zinc-500' : 'text-white'}`}>
@@ -59,7 +59,7 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
             </span>
           )}
         </div>
-        {!isDone && (
+        {!isDone && hasDeadline && (
           <div className="mt-1.5 h-1 bg-zinc-800 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${overrun ? 'bg-red-500' : isActive ? 'bg-violet-500' : 'bg-zinc-600'}`}
@@ -69,17 +69,25 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
         )}
       </div>
 
-      {/* Time */}
       <div className="shrink-0 text-right">
         <span className={`font-mono text-sm tabular-nums ${overrun ? 'text-red-400' : 'text-zinc-400'}`}>
           {formatTime(task.live_elapsed)}
         </span>
-        <span className="text-zinc-600 text-sm"> / {formatTime(task.allocated_seconds)}</span>
+        {hasDeadline && (
+          <span className="text-zinc-600 text-sm"> / {formatTime(task.allocated_seconds)}</span>
+        )}
       </div>
 
-      {/* Actions */}
       {!isDone && (
         <div className="shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={onEdit}
+            disabled={disabled}
+            className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
+            title="Редактировать"
+          >
+            ✎
+          </button>
           <button
             onClick={onComplete}
             disabled={disabled}

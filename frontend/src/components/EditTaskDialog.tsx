@@ -1,38 +1,47 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import type { Task } from '../types'
 
 interface Props {
   open: boolean
+  task: Task | null
   onClose: () => void
-  onAdd: (data: { name: string; allocated_seconds: number; priority: string }) => void
+  onSave: (data: { name: string; allocated_seconds: number; priority: string }) => void
 }
 
-export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
+export default function EditTaskDialog({ open, task, onClose, onSave }: Props) {
   const [name, setName] = useState('')
   const [hours, setHours] = useState(0)
-  const [minutes, setMinutes] = useState(30)
+  const [minutes, setMinutes] = useState(0)
   const [priority, setPriority] = useState('normal')
   const [noDeadline, setNoDeadline] = useState(false)
 
-  if (!open) return null
+  useEffect(() => {
+    if (task) {
+      setName(task.name)
+      setNoDeadline(task.allocated_seconds === 0)
+      const h = Math.floor(task.allocated_seconds / 3600)
+      const m = Math.floor((task.allocated_seconds % 3600) / 60)
+      setHours(h)
+      setMinutes(m)
+      setPriority(task.priority)
+    }
+  }, [task])
+
+  if (!open || !task) return null
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
     const allocated_seconds = noDeadline ? 0 : hours * 3600 + minutes * 60
     if (!noDeadline && allocated_seconds <= 0) return
-    onAdd({ name: name.trim(), allocated_seconds, priority })
-    setName('')
-    setHours(0)
-    setMinutes(30)
-    setPriority('normal')
-    setNoDeadline(false)
+    onSave({ name: name.trim(), allocated_seconds, priority })
     onClose()
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold text-white mb-4">Новая задача</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">Редактировать задачу</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
@@ -111,7 +120,7 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
               type="submit"
               className="flex-1 py-2.5 bg-violet-600 text-white rounded-lg hover:bg-violet-500 transition-colors"
             >
-              Добавить
+              Сохранить
             </button>
           </div>
         </form>

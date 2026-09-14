@@ -15,16 +15,16 @@ from models import TaskStatus, Priority, OverrunBehavior, OverrunSource, RewardT
 
 class TaskCreate(BaseModel):
     name: str
-    allocated_seconds: int
+    allocated_seconds: int = 0
     scheduled_time: Optional[str] = None   # "HH:MM"
     position: int = 0
     priority: Priority = Priority.NORMAL
 
     @field_validator("allocated_seconds")
     @classmethod
-    def positive_seconds(cls, v):
-        if v <= 0:
-            raise ValueError("allocated_seconds должен быть > 0")
+    def non_negative_seconds(cls, v):
+        if v < 0:
+            raise ValueError("allocated_seconds должен быть >= 0")
         return v
 
 
