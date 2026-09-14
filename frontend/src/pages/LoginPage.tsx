@@ -20,7 +20,7 @@ export default function LoginPage() {
         await login(email, password)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setError(err instanceof Error ? err.message : 'Что-то пошло не так')
     } finally {
       setLoading(false)
     }
@@ -35,7 +35,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Электронная почта"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -43,7 +43,7 @@ export default function LoginPage() {
           />
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Пароль"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -58,14 +58,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-medium rounded-lg transition-colors"
           >
-            {loading ? '...' : isRegister ? 'Register' : 'Log in'}
+            {loading ? '...' : isRegister ? 'Зарегистрироваться' : 'Войти'}
           </button>
         </form>
         <button
           onClick={() => { setIsRegister(!isRegister); setError('') }}
           className="mt-4 w-full text-center text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
         >
-          {isRegister ? 'Already have an account? Log in' : "Don't have an account? Register"}
+          {isRegister ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
         </button>
       </div>
     </div>

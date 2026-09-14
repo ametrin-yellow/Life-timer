@@ -31,7 +31,7 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
             onClick={onPause}
             disabled={disabled}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-violet-600 hover:bg-violet-500 text-white transition-colors disabled:opacity-50"
-            title="Pause"
+            title="Пауза"
           >
             ❚❚
           </button>
@@ -40,7 +40,7 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
             onClick={onStart}
             disabled={disabled}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 text-white transition-colors disabled:opacity-50"
-            title="Start"
+            title="Старт"
           >
             ▶
           </button>
@@ -84,23 +84,23 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
             onClick={onComplete}
             disabled={disabled}
             className="px-2 py-1 text-xs bg-emerald-900/30 text-emerald-400 rounded hover:bg-emerald-900/50 transition-colors disabled:opacity-50"
-            title="Complete"
+            title="Завершить"
           >
-            Done
+            Готово
           </button>
           <button
             onClick={onSkip}
             disabled={disabled}
             className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
-            title="Skip"
+            title="Пропустить"
           >
-            Skip
+            Проп.
           </button>
           <button
             onClick={onDelete}
             disabled={disabled}
             className="px-2 py-1 text-xs bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700 transition-colors disabled:opacity-50"
-            title="Delete"
+            title="Удалить"
           >
             ×
           </button>

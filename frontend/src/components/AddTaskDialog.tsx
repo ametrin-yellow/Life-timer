@@ -29,11 +29,11 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold text-white mb-4">Add Task</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">Новая задача</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
-            placeholder="Task name"
+            placeholder="Название задачи"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -42,7 +42,7 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
           />
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-xs text-zinc-500 mb-1">Hours</label>
+              <label className="block text-xs text-zinc-500 mb-1">Часы</label>
               <input
                 type="number"
                 min={0}
@@ -53,7 +53,7 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
               />
             </div>
             <div className="flex-1">
-              <label className="block text-xs text-zinc-500 mb-1">Minutes</label>
+              <label className="block text-xs text-zinc-500 mb-1">Минуты</label>
               <input
                 type="number"
                 min={0}
@@ -65,7 +65,7 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Priority</label>
+            <label className="block text-xs text-zinc-500 mb-1">Приоритет</label>
             <div className="flex gap-2">
               {(['low', 'normal', 'high'] as const).map((p) => (
                 <button
@@ -80,7 +80,7 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
                       : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
                   }`}
                 >
-                  {p === 'high' ? 'High' : p === 'low' ? 'Low' : 'Normal'}
+                  {p === 'high' ? 'Высокий' : p === 'low' ? 'Низкий' : 'Обычный'}
                 </button>
               ))}
             </div>
@@ -91,13 +91,13 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
               onClick={onClose}
               className="flex-1 py-2.5 bg-zinc-800 text-zinc-400 rounded-lg hover:bg-zinc-700 transition-colors"
             >
-              Cancel
+              Отмена
             </button>
             <button
               type="submit"
               className="flex-1 py-2.5 bg-violet-600 text-white rounded-lg hover:bg-violet-500 transition-colors"
             >
-              Add
+              Добавить
             </button>
           </div>
         </form>

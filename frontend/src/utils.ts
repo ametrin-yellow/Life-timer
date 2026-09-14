@@ -11,8 +11,8 @@ export function formatTime(seconds: number): string {
 
 export function priorityLabel(p: string): string {
   switch (p) {
-    case 'high': return 'High'
-    case 'low': return 'Low'
+    case 'high': return 'Высокий'
+    case 'low': return 'Низкий'
     default: return ''
   }
 }

@@ -23,7 +23,7 @@ export default function TimerHeader({ activeTask, procrastination, procrastinati
         </div>
       ) : (
         <div className="text-center">
-          <p className="text-zinc-500 text-sm mb-1">No active task</p>
+          <p className="text-zinc-500 text-sm mb-1">Нет активной задачи</p>
           <p className="text-5xl font-mono font-bold tabular-nums text-zinc-600">
             --:--
           </p>
@@ -32,7 +32,7 @@ export default function TimerHeader({ activeTask, procrastination, procrastinati
       <div className="mt-4 flex justify-center">
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${procrastinationRunning ? 'bg-amber-900/30 text-amber-400' : 'bg-zinc-900 text-zinc-500'}`}>
           <span className={`w-2 h-2 rounded-full ${procrastinationRunning ? 'bg-amber-400 animate-pulse' : 'bg-zinc-700'}`} />
-          Procrastination: {formatTime(procrastination)}
+          Прокрастинация: {formatTime(procrastination)}
         </div>
       </div>
     </div>
