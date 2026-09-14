@@ -72,15 +72,21 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
             {task.name}
           </span>
           {task.is_recurring && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400">
+            <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400">
               ↻
             </span>
           )}
           {task.priority !== 'normal' && (
-            <span className={`text-xs px-1.5 py-0.5 rounded ${task.priority === 'high' ? 'bg-red-900/30 text-red-400' : 'bg-zinc-800 text-zinc-500'}`}>
+            <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded ${task.priority === 'high' ? 'bg-red-900/30 text-red-400' : 'bg-zinc-800 text-zinc-500'}`}>
               {priorityLabel(task.priority)}
             </span>
           )}
+          <span className={`shrink-0 ml-auto font-mono text-sm tabular-nums ${overrun ? 'text-red-400' : 'text-zinc-400'}`}>
+            {formatTime(task.live_elapsed)}
+            {hasDeadline && (
+              <span className="text-zinc-600"> / {formatTime(task.allocated_seconds)}</span>
+            )}
+          </span>
         </div>
         {!isDone && hasDeadline && (
           <div className="mt-1.5 h-1 bg-zinc-800 rounded-full overflow-hidden">
@@ -89,15 +95,6 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
-        )}
-      </div>
-
-      <div className="shrink-0 text-right">
-        <span className={`font-mono text-sm tabular-nums ${overrun ? 'text-red-400' : 'text-zinc-400'}`}>
-          {formatTime(task.live_elapsed)}
-        </span>
-        {hasDeadline && (
-          <span className="text-zinc-600 text-sm"> / {formatTime(task.allocated_seconds)}</span>
         )}
       </div>
 
