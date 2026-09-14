@@ -27,6 +27,17 @@ export interface TimerState {
   day_finalized: boolean
 }
 
+export interface DayPlan {
+  id: number
+  date: string
+  procrastination_used: number
+  day_bonus: number
+  day_penalty: number
+  day_total: number
+  day_finalized: boolean
+  tasks: Task[]
+}
+
 export interface AuthTokens {
   access_token: string
   refresh_token: string

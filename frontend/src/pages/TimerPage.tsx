@@ -9,7 +9,11 @@ import EditTaskDialog from '../components/EditTaskDialog'
 import ChangePasswordDialog from '../components/ChangePasswordDialog'
 import type { Task } from '../types'
 
-export default function TimerPage() {
+interface Props {
+  onStats: () => void
+}
+
+export default function TimerPage({ onStats }: Props) {
   const { logout } = useAuth()
   const { state, loading, tasks, liveProcrastination, activeTask, refresh } = useTimer()
   const [busy, setBusy] = useState(false)
@@ -83,6 +87,12 @@ export default function TimerPage() {
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
         <h1 className="text-lg font-bold">Life Timer</h1>
         <div className="flex items-center gap-4">
+          <button
+            onClick={onStats}
+            className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            Статистика
+          </button>
           <button
             onClick={() => setShowPassword(true)}
             className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"

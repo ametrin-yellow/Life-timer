@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { TimerState } from '../types'
+import type { TimerState, DayPlan } from '../types'
 
 export const timerApi = {
   getState: () => apiFetch<TimerState>('/timer/state'),
@@ -15,6 +15,19 @@ export const timerApi = {
 
   skipTask: (taskId: string) =>
     apiFetch<TimerState>(`/timer/tasks/${taskId}/skip`, { method: 'POST' }),
+}
+
+export const statsApi = {
+  getPlans: (dateFrom?: string, dateTo?: string) => {
+    const params = new URLSearchParams()
+    if (dateFrom) params.set('date_from', dateFrom)
+    if (dateTo) params.set('date_to', dateTo)
+    const qs = params.toString()
+    return apiFetch<DayPlan[]>(`/plans/${qs ? `?${qs}` : ''}`)
+  },
+
+  getPlan: (planId: number) =>
+    apiFetch<DayPlan>(`/plans/${planId}`),
 }
 
 export const planApi = {
