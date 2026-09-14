@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { changePassword, getMe, linkTelegram, unlinkTelegram } from '../api/auth'
+import { getSettings, updateSettings } from '../api/settings'
 
 declare global {
   interface Window {
@@ -26,11 +27,18 @@ export default function SettingsDialog({ open, onClose }: Props) {
   const [tgBotUsername, setTgBotUsername] = useState<string | null>(null)
   const tgBtnRef = useRef<HTMLDivElement>(null)
 
+  const [dayStartHour, setDayStartHour] = useState(0)
+  const [dayStartSaved, setDayStartSaved] = useState(false)
+
   useEffect(() => {
     if (!open) return
     getMe().then((me) => {
       setHasPassword(me.has_password)
       setHasTelegram(me.has_telegram)
+    }).catch(() => {})
+
+    getSettings().then((s) => {
+      setDayStartHour(s.day_start_hour)
     }).catch(() => {})
 
     fetch('/api/auth/telegram-bot')
@@ -85,6 +93,7 @@ export default function SettingsDialog({ open, onClose }: Props) {
     setPwError('')
     setPwDone(false)
     setTgError('')
+    setDayStartSaved(false)
   }
 
   function handleClose() {
@@ -204,6 +213,41 @@ export default function SettingsDialog({ open, onClose }: Props) {
             )}
           </div>
         )}
+
+        {/* Day start */}
+        <div className="mb-6">
+          <h3 className="text-sm text-zinc-400 mb-3">Новые сутки в (UTC)</h3>
+          <div className="flex items-center gap-3">
+            <select
+              value={dayStartHour}
+              onChange={(e) => {
+                setDayStartHour(Number(e.target.value))
+                setDayStartSaved(false)
+              }}
+              className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-violet-500"
+            >
+              {Array.from({ length: 24 }, (_, i) => (
+                <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
+              ))}
+            </select>
+            <button
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  await updateSettings({ day_start_hour: dayStartHour })
+                  setDayStartSaved(true)
+                } finally {
+                  setBusy(false)
+                }
+              }}
+              disabled={busy}
+              className="px-4 py-2 text-sm bg-violet-600 text-white rounded-lg hover:bg-violet-500 transition-colors disabled:opacity-50"
+            >
+              {busy ? '...' : 'Сохранить'}
+            </button>
+            {dayStartSaved && <span className="text-green-400 text-sm">Сохранено</span>}
+          </div>
+        </div>
 
         <button
           onClick={handleClose}

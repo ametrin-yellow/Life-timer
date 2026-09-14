@@ -105,6 +105,7 @@ class UserSettings(Base):
     base_bonus                   = Column(Integer, default=10)
     base_penalty                 = Column(Integer, default=10)
     allow_negative_balance       = Column(Boolean, default=False)
+    day_start_hour               = Column(Integer, default=0)
 
     user = relationship("User", back_populates="settings")
 

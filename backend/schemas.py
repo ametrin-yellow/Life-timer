@@ -102,6 +102,7 @@ class SettingsResponse(BaseModel):
     base_bonus: int
     base_penalty: int
     allow_negative_balance: bool
+    day_start_hour: int
 
     model_config = {"from_attributes": True}
 
@@ -116,6 +117,7 @@ class SettingsUpdate(BaseModel):
     base_bonus: Optional[int] = None
     base_penalty: Optional[int] = None
     allow_negative_balance: Optional[bool] = None
+    day_start_hour: Optional[int] = None
 
 
 # ──────────────────────────────────────────────

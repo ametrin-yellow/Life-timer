@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from database import get_db
-from models import User, DayPlan, Task
+from models import User, UserSettings, DayPlan, Task
 from schemas import (
     PlanResponse, PlanUpdate,
     TaskCreate, TaskUpdate, TaskResponse,
@@ -80,7 +80,12 @@ async def get_or_create_today(
     current_user: User = Depends(get_current_user),
 ):
     """Получить план на сегодня, создать если не существует."""
-    today = date.today()
+    result = await db.execute(
+        select(UserSettings.day_start_hour).where(UserSettings.user_id == current_user.id)
+    )
+    dsh = result.scalar_one_or_none() or 0
+    now = datetime.now(timezone.utc)
+    today = (now - timedelta(hours=dsh)).date()
     result = await db.execute(
         select(DayPlan)
         .where(DayPlan.user_id == current_user.id, DayPlan.date == today)
