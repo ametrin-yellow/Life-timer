@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import time
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -166,26 +166,28 @@ class TelegramAuthRequest(BaseModel):
     hash: str
 
 
-def _verify_telegram_auth(data: dict, bot_token: str) -> bool:
-    check_hash = data.pop("hash")
-    check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()) if v is not None)
+def _verify_telegram_auth(raw: dict, bot_token: str) -> bool:
+    data = {k: v for k, v in raw.items() if k != "hash"}
+    check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()))
     secret_key = hashlib.sha256(bot_token.encode()).digest()
     computed = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
-    if computed != check_hash:
+    if computed != raw.get("hash"):
         return False
-    if time.time() - data["auth_date"] > 86400:
+    if time.time() - int(raw["auth_date"]) > 86400:
         return False
     return True
 
 
 @router.post("/telegram", response_model=TokenResponse)
-async def telegram_auth(data: TelegramAuthRequest, db: AsyncSession = Depends(get_db)):
+async def telegram_auth(request: Request, db: AsyncSession = Depends(get_db)):
     if not app_settings.telegram_bot_token:
         raise HTTPException(status_code=501, detail="Telegram Login не настроен")
 
-    auth_data = data.model_dump()
-    if not _verify_telegram_auth(auth_data, app_settings.telegram_bot_token):
+    raw = await request.json()
+    if not _verify_telegram_auth(raw, app_settings.telegram_bot_token):
         raise HTTPException(status_code=401, detail="Невалидные данные Telegram")
+
+    data = TelegramAuthRequest(**raw)
 
     tg_id = str(data.id)
 
