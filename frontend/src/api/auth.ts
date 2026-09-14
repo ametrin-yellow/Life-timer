@@ -1,4 +1,5 @@
 import type { AuthTokens } from '../types'
+import { apiFetch } from './client'
 
 export async function login(email: string, password: string): Promise<AuthTokens> {
   const body = new URLSearchParams({ username: email, password })
@@ -12,6 +13,13 @@ export async function login(email: string, password: string): Promise<AuthTokens
     throw new Error(text)
   }
   return res.json()
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await apiFetch('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  })
 }
 
 export async function register(email: string, password: string): Promise<AuthTokens> {

@@ -5,12 +5,14 @@ import { timerApi, planApi } from '../api/timer'
 import TimerHeader from '../components/TimerHeader'
 import TaskRow from '../components/TaskRow'
 import AddTaskDialog from '../components/AddTaskDialog'
+import ChangePasswordDialog from '../components/ChangePasswordDialog'
 
 export default function TimerPage() {
   const { logout } = useAuth()
   const { state, loading, tasks, liveProcrastination, activeTask, refresh } = useTimer()
   const [busy, setBusy] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const wrap = useCallback(async (fn: () => Promise<unknown>) => {
     setBusy(true)
@@ -41,12 +43,20 @@ export default function TimerPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
         <h1 className="text-lg font-bold">Life Timer</h1>
-        <button
-          onClick={logout}
-          className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-        >
-          Log out
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowPassword(true)}
+            className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            Settings
+          </button>
+          <button
+            onClick={logout}
+            className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            Log out
+          </button>
+        </div>
       </div>
 
       <TimerHeader
@@ -110,6 +120,11 @@ export default function TimerPage() {
           </div>
         )}
       </div>
+
+      <ChangePasswordDialog
+        open={showPassword}
+        onClose={() => setShowPassword(false)}
+      />
 
       <AddTaskDialog
         open={showAdd}

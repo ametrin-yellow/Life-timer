@@ -105,6 +105,25 @@ async def refresh(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
     )
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+async def change_password(
+    data: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Неверный текущий пароль")
+
+    current_user.hashed_password = hash_password(data.new_password)
+    await db.commit()
+    return {"ok": True}
+
+
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
