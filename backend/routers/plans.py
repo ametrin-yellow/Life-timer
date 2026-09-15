@@ -75,6 +75,32 @@ async def list_plans(
     return result.scalars().all()
 
 
+@router.get("/all-tasks", response_model=list[TaskResponse])
+async def all_tasks(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    dsh, tz = await get_user_day_settings(current_user.id, db)
+    today = user_today(dsh, tz)
+    plan = await get_or_create_today_plan(current_user.id, db, dsh, tz)
+    recurring = [t for t in plan.tasks if t.is_recurring]
+
+    scheduled_result = await db.execute(
+        select(Task)
+        .join(DayPlan)
+        .where(
+            DayPlan.user_id == current_user.id,
+            Task.scheduled_date.isnot(None),
+            Task.scheduled_date > today,
+            Task.is_recurring == False,
+        )
+        .order_by(Task.scheduled_date)
+    )
+    scheduled = list(scheduled_result.scalars().all())
+
+    return recurring + scheduled
+
+
 @router.get("/today", response_model=PlanResponse)
 async def get_or_create_today(
     db: AsyncSession = Depends(get_db),
@@ -111,32 +137,6 @@ async def update_plan(
 # ──────────────────────────────────────────────
 #  Tasks
 # ──────────────────────────────────────────────
-
-@router.get("/all-tasks", response_model=list[TaskResponse])
-async def all_tasks(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    dsh, tz = await get_user_day_settings(current_user.id, db)
-    today = user_today(dsh, tz)
-    plan = await get_or_create_today_plan(current_user.id, db, dsh, tz)
-    recurring = [t for t in plan.tasks if t.is_recurring]
-
-    scheduled_result = await db.execute(
-        select(Task)
-        .join(DayPlan)
-        .where(
-            DayPlan.user_id == current_user.id,
-            Task.scheduled_date.isnot(None),
-            Task.scheduled_date > today,
-            Task.is_recurring == False,
-        )
-        .order_by(Task.scheduled_date)
-    )
-    scheduled = list(scheduled_result.scalars().all())
-
-    return recurring + scheduled
-
 
 @router.post("/{plan_id}/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
