@@ -11,9 +11,10 @@ import type { Task } from '../types'
 
 interface Props {
   onStats: () => void
+  onAllTasks: () => void
 }
 
-export default function TimerPage({ onStats }: Props) {
+export default function TimerPage({ onStats, onAllTasks }: Props) {
   const { logout } = useAuth()
   const { state, loading, tasks, liveProcrastination, activeTask, refresh } = useTimer()
   const [busy, setBusy] = useState(false)
@@ -96,6 +97,12 @@ export default function TimerPage({ onStats }: Props) {
         <h1 className="text-lg font-bold">Life Timer</h1>
         <div className="flex items-center gap-4">
           <button
+            onClick={onAllTasks}
+            className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            Задачи
+          </button>
+          <button
             onClick={onStats}
             className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
           >
@@ -120,6 +127,7 @@ export default function TimerPage({ onStats }: Props) {
         activeTask={activeTask}
         procrastination={liveProcrastination}
         procrastinationRunning={state?.procrastination_running ?? false}
+        nextDayBoundary={state?.next_day_boundary ?? null}
       />
 
       <div className="max-w-2xl mx-auto">

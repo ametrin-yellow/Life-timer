@@ -6,7 +6,7 @@ const DAY_VALUES = [1, 2, 3, 4, 5, 6, 7] as const
 interface Props {
   open: boolean
   onClose: () => void
-  onAdd: (data: { name: string; allocated_seconds: number; priority: string; is_recurring: boolean; schedule_days: string | null }) => void
+  onAdd: (data: { name: string; allocated_seconds: number; priority: string; is_recurring: boolean; schedule_days: string | null; scheduled_date: string | null }) => void
 }
 
 export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
@@ -17,6 +17,7 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
   const [noDeadline, setNoDeadline] = useState(false)
   const [isRecurring, setIsRecurring] = useState(false)
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set())
+  const [scheduledDate, setScheduledDate] = useState('')
 
   if (!open) return null
 
@@ -37,7 +38,8 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
     const schedule_days = isRecurring && selectedDays.size > 0 && selectedDays.size < 7
       ? [...selectedDays].sort().join(',')
       : null
-    onAdd({ name: name.trim(), allocated_seconds, priority, is_recurring: isRecurring, schedule_days })
+    const scheduled_date = !isRecurring && scheduledDate ? scheduledDate : null
+    onAdd({ name: name.trim(), allocated_seconds, priority, is_recurring: isRecurring, schedule_days, scheduled_date })
     setName('')
     setHours(0)
     setMinutes(30)
@@ -45,6 +47,7 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
     setNoDeadline(false)
     setIsRecurring(false)
     setSelectedDays(new Set())
+    setScheduledDate('')
     onClose()
   }
 
@@ -99,6 +102,17 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+          {!isRecurring && (
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Запланировать на дату (пусто = сегодня)</label>
+              <input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-violet-500"
+              />
             </div>
           )}
           {!noDeadline && (

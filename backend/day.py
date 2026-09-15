@@ -90,6 +90,33 @@ async def get_or_create_today_plan(
                 has_active_carryover = True
             db.add(new_task)
 
+    scheduled_result = await db.execute(
+        select(Task)
+        .join(DayPlan)
+        .where(
+            DayPlan.user_id == user_id,
+            Task.scheduled_date == today,
+            Task.plan_id != plan.id,
+            Task.status.in_([TaskStatus.PENDING, TaskStatus.ACTIVE]),
+        )
+    )
+    for task in scheduled_result.scalars().all():
+        new_task = Task(
+            id=str(uuid.uuid4()),
+            plan_id=plan.id,
+            name=task.name,
+            allocated_seconds=task.allocated_seconds,
+            elapsed_seconds=0,
+            status=TaskStatus.PENDING,
+            scheduled_time=task.scheduled_time,
+            position=task.position,
+            priority=task.priority,
+            is_recurring=False,
+            schedule_days=None,
+            scheduled_date=today,
+        )
+        db.add(new_task)
+
     plan.procrastination_started_at = None if has_active_carryover else utcnow()
 
     await db.commit()

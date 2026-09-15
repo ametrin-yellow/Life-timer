@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { TimerState, DayPlan } from '../types'
+import type { TimerState, DayPlan, Task } from '../types'
 
 export const timerApi = {
   getState: () => apiFetch<TimerState>('/timer/state'),
@@ -33,6 +33,10 @@ export const statsApi = {
     apiFetch<DayPlan>(`/plans/${planId}`),
 }
 
+export const allTasksApi = {
+  getAll: () => apiFetch<Task[]>('/plans/all-tasks'),
+}
+
 export const planApi = {
   createTask: (planId: number, data: {
     name: string
@@ -41,6 +45,7 @@ export const planApi = {
     scheduled_time?: string
     is_recurring?: boolean
     schedule_days?: string | null
+    scheduled_date?: string | null
   }) => apiFetch(`/plans/${planId}/tasks`, {
     method: 'POST',
     body: JSON.stringify(data),
