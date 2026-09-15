@@ -1,9 +1,12 @@
 import { useState } from 'react'
 
+const DAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] as const
+const DAY_VALUES = [1, 2, 3, 4, 5, 6, 7] as const
+
 interface Props {
   open: boolean
   onClose: () => void
-  onAdd: (data: { name: string; allocated_seconds: number; priority: string; is_recurring: boolean }) => void
+  onAdd: (data: { name: string; allocated_seconds: number; priority: string; is_recurring: boolean; schedule_days: string | null }) => void
 }
 
 export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
@@ -13,21 +16,35 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
   const [priority, setPriority] = useState('normal')
   const [noDeadline, setNoDeadline] = useState(false)
   const [isRecurring, setIsRecurring] = useState(false)
+  const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set())
 
   if (!open) return null
+
+  function toggleDay(day: number) {
+    setSelectedDays(prev => {
+      const next = new Set(prev)
+      if (next.has(day)) next.delete(day)
+      else next.add(day)
+      return next
+    })
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
     const allocated_seconds = noDeadline ? 0 : hours * 3600 + minutes * 60
     if (!noDeadline && allocated_seconds <= 0) return
-    onAdd({ name: name.trim(), allocated_seconds, priority, is_recurring: isRecurring })
+    const schedule_days = isRecurring && selectedDays.size > 0 && selectedDays.size < 7
+      ? [...selectedDays].sort().join(',')
+      : null
+    onAdd({ name: name.trim(), allocated_seconds, priority, is_recurring: isRecurring, schedule_days })
     setName('')
     setHours(0)
     setMinutes(30)
     setPriority('normal')
     setNoDeadline(false)
     setIsRecurring(false)
+    setSelectedDays(new Set())
     onClose()
   }
 
@@ -63,6 +80,27 @@ export default function AddTaskDialog({ open, onClose, onAdd }: Props) {
             />
             <span className="text-sm text-zinc-400">Регулярная (переносится в новый день)</span>
           </label>
+          {isRecurring && (
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Дни недели (пусто = каждый день)</label>
+              <div className="flex gap-1">
+                {DAY_VALUES.map((day, i) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => toggleDay(day)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      selectedDays.has(day)
+                        ? 'bg-violet-900/40 text-violet-400 border border-violet-800'
+                        : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+                    }`}
+                  >
+                    {DAY_LABELS[i]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {!noDeadline && (
             <div className="flex gap-3">
               <div className="flex-1">

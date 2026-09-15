@@ -20,6 +20,7 @@ class TaskCreate(BaseModel):
     position: int = 0
     priority: Priority = Priority.NORMAL
     is_recurring: bool = False
+    schedule_days: Optional[str] = None
 
     @field_validator("allocated_seconds")
     @classmethod
@@ -40,6 +41,7 @@ class TaskUpdate(BaseModel):
     status: Optional[TaskStatus] = None
     completed_at: Optional[datetime] = None
     is_recurring: Optional[bool] = None
+    schedule_days: Optional[str] = None
     coins_earned: Optional[int] = None
     coins_penalty: Optional[int] = None
 
@@ -56,6 +58,7 @@ class TaskResponse(BaseModel):
     position: int
     priority: Priority
     is_recurring: bool
+    schedule_days: Optional[str] = None
     coins_earned: int
     coins_penalty: int
     started_at: Optional[datetime] = None

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import type { Task } from '../types'
 
+const DAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] as const
+const DAY_VALUES = [1, 2, 3, 4, 5, 6, 7] as const
+
 interface Props {
   open: boolean
   task: Task | null
   onClose: () => void
-  onSave: (data: { name: string; allocated_seconds: number; priority: string; is_recurring: boolean }) => void
+  onSave: (data: { name: string; allocated_seconds: number; priority: string; is_recurring: boolean; schedule_days: string | null }) => void
 }
 
 export default function EditTaskDialog({ open, task, onClose, onSave }: Props) {
@@ -15,12 +18,18 @@ export default function EditTaskDialog({ open, task, onClose, onSave }: Props) {
   const [priority, setPriority] = useState('normal')
   const [noDeadline, setNoDeadline] = useState(false)
   const [isRecurring, setIsRecurring] = useState(false)
+  const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     if (task) {
       setName(task.name)
       setNoDeadline(task.allocated_seconds === 0)
       setIsRecurring(task.is_recurring)
+      setSelectedDays(
+        task.schedule_days
+          ? new Set(task.schedule_days.split(',').map(Number))
+          : new Set()
+      )
       const h = Math.floor(task.allocated_seconds / 3600)
       const m = Math.floor((task.allocated_seconds % 3600) / 60)
       setHours(h)
@@ -31,12 +40,24 @@ export default function EditTaskDialog({ open, task, onClose, onSave }: Props) {
 
   if (!open || !task) return null
 
+  function toggleDay(day: number) {
+    setSelectedDays(prev => {
+      const next = new Set(prev)
+      if (next.has(day)) next.delete(day)
+      else next.add(day)
+      return next
+    })
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
     const allocated_seconds = noDeadline ? 0 : hours * 3600 + minutes * 60
     if (!noDeadline && allocated_seconds <= 0) return
-    onSave({ name: name.trim(), allocated_seconds, priority, is_recurring: isRecurring })
+    const schedule_days = isRecurring && selectedDays.size > 0 && selectedDays.size < 7
+      ? [...selectedDays].sort().join(',')
+      : null
+    onSave({ name: name.trim(), allocated_seconds, priority, is_recurring: isRecurring, schedule_days })
     onClose()
   }
 
@@ -72,6 +93,27 @@ export default function EditTaskDialog({ open, task, onClose, onSave }: Props) {
             />
             <span className="text-sm text-zinc-400">Регулярная (переносится в новый день)</span>
           </label>
+          {isRecurring && (
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Дни недели (пусто = каждый день)</label>
+              <div className="flex gap-1">
+                {DAY_VALUES.map((day, i) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => toggleDay(day)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      selectedDays.has(day)
+                        ? 'bg-violet-900/40 text-violet-400 border border-violet-800'
+                        : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+                    }`}
+                  >
+                    {DAY_LABELS[i]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {!noDeadline && (
             <div className="flex gap-3">
               <div className="flex-1">

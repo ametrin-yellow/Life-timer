@@ -60,7 +60,7 @@ async def get_or_create_today_plan(
 
     if prev_plan:
         for task in prev_plan.tasks:
-            new_task = _carry_over_task(task, plan.id, boundary)
+            new_task = _carry_over_task(task, plan.id, boundary, today)
             if new_task is None:
                 continue
             if new_task.started_at is not None:
@@ -79,8 +79,22 @@ async def get_or_create_today_plan(
     return result.scalar_one()
 
 
-def _carry_over_task(task: Task, new_plan_id: int, boundary: datetime) -> Task | None:
+def _matches_schedule(task: Task, target_date: date) -> bool:
+    if not task.schedule_days:
+        return True
+    days = {int(d) for d in task.schedule_days.split(",")}
+    return target_date.isoweekday() in days
+
+
+def _carry_over_task(task: Task, new_plan_id: int, boundary: datetime, target_date: date) -> Task | None:
     if task.is_recurring:
+        if not _matches_schedule(task, target_date):
+            if task.started_at is not None:
+                delta = max(0, int((boundary - task.started_at).total_seconds()))
+                task.elapsed_seconds += delta
+                task.started_at = None
+                task.status = TaskStatus.COMPLETED
+            return None
         return _carry_recurring(task, new_plan_id, boundary)
     return _carry_onetime(task, new_plan_id, boundary)
 
@@ -106,6 +120,7 @@ def _carry_recurring(task: Task, new_plan_id: int, boundary: datetime) -> Task:
         position=task.position,
         priority=task.priority,
         is_recurring=True,
+        schedule_days=task.schedule_days,
         started_at=new_started_at,
     )
 

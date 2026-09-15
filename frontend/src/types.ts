@@ -10,6 +10,7 @@ export interface Task {
   position: number
   priority: 'high' | 'normal' | 'low'
   is_recurring: boolean
+  schedule_days: string | null
   coins_earned: number
   coins_penalty: number
   started_at: string | null

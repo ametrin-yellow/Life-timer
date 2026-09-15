@@ -2,6 +2,20 @@ import { useState, useRef, useEffect } from 'react'
 import { formatTime, priorityLabel } from '../utils'
 import type { Task } from '../types'
 
+const SHORT_DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+
+function formatScheduleShort(schedule: string): string {
+  const days = schedule.split(',').map(Number).sort()
+  if (days.length === 5 && days.join(',') === '1,2,3,4,5') return 'Пн-Пт'
+  if (days.length === 2 && days.join(',') === '6,7') return 'Сб-Вс'
+  return days.map(d => SHORT_DAYS[d - 1]).join(',')
+}
+
+function formatSchedule(schedule: string): string {
+  const days = schedule.split(',').map(Number).sort()
+  return days.map(d => SHORT_DAYS[d - 1]).join(', ')
+}
+
 interface Props {
   task: Task & { live_elapsed: number }
   isActive: boolean
@@ -92,8 +106,8 @@ export default function TaskRow({ task, isActive, onStart, onPause, onComplete, 
             {task.name}
           </span>
           {task.is_recurring && (
-            <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400">
-              ↻
+            <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400" title={task.schedule_days ? formatSchedule(task.schedule_days) : 'Каждый день'}>
+              ↻{task.schedule_days ? ` ${formatScheduleShort(task.schedule_days)}` : ''}
             </span>
           )}
           {task.priority !== 'normal' && (

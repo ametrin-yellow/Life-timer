@@ -39,6 +39,8 @@ export const planApi = {
     allocated_seconds: number
     priority?: string
     scheduled_time?: string
+    is_recurring?: boolean
+    schedule_days?: string | null
   }) => apiFetch(`/plans/${planId}/tasks`, {
     method: 'POST',
     body: JSON.stringify(data),
