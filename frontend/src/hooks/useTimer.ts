@@ -81,6 +81,18 @@ export function useTimer(): LiveTimerState {
     return () => clearInterval(interval)
   }, [])
 
+  const dayRefreshedRef = useRef(false)
+  useEffect(() => {
+    if (!state?.next_day_boundary) return
+    const boundaryMs = new Date(state.next_day_boundary).getTime()
+    if (Date.now() >= boundaryMs && !dayRefreshedRef.current) {
+      dayRefreshedRef.current = true
+      refresh()
+    } else if (Date.now() < boundaryMs) {
+      dayRefreshedRef.current = false
+    }
+  })
+
   const now = Date.now()
   const offset = serverOffsetRef.current
   void tick

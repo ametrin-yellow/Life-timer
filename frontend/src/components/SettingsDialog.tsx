@@ -28,6 +28,7 @@ export default function SettingsDialog({ open, onClose }: Props) {
   const tgBtnRef = useRef<HTMLDivElement>(null)
 
   const [dayStartHour, setDayStartHour] = useState(0)
+  const [userTimezone, setUserTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone)
   const [dayStartSaved, setDayStartSaved] = useState(false)
 
   useEffect(() => {
@@ -39,6 +40,9 @@ export default function SettingsDialog({ open, onClose }: Props) {
 
     getSettings().then((s) => {
       setDayStartHour(s.day_start_hour)
+      if (s.timezone && s.timezone !== 'UTC') {
+        setUserTimezone(s.timezone)
+      }
     }).catch(() => {})
 
     fetch('/api/auth/telegram-bot')
@@ -216,8 +220,8 @@ export default function SettingsDialog({ open, onClose }: Props) {
 
         {/* Day start */}
         <div className="mb-6">
-          <h3 className="text-sm text-zinc-400 mb-3">Новые сутки в (UTC)</h3>
-          <div className="flex items-center gap-3">
+          <h3 className="text-sm text-zinc-400 mb-3">Новые сутки в</h3>
+          <div className="flex items-center gap-3 flex-wrap">
             <select
               value={dayStartHour}
               onChange={(e) => {
@@ -230,11 +234,12 @@ export default function SettingsDialog({ open, onClose }: Props) {
                 <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
               ))}
             </select>
+            <span className="text-xs text-zinc-500">{userTimezone}</span>
             <button
               onClick={async () => {
                 setBusy(true)
                 try {
-                  await updateSettings({ day_start_hour: dayStartHour })
+                  await updateSettings({ day_start_hour: dayStartHour, timezone: userTimezone })
                   setDayStartSaved(true)
                 } finally {
                   setBusy(false)

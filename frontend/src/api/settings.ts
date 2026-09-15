@@ -2,6 +2,7 @@ import { apiFetch } from './client'
 
 export interface UserSettingsData {
   day_start_hour: number
+  timezone: string
 }
 
 export function getSettings() {

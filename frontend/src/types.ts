@@ -27,6 +27,7 @@ export interface TimerState {
   procrastination_running: boolean
   tasks: Task[]
   day_finalized: boolean
+  next_day_boundary: string | null
 }
 
 export interface DayPlan {

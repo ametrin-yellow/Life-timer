@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -12,23 +13,48 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def user_today(day_start_hour: int = 0) -> date:
-    return (utcnow() - timedelta(hours=day_start_hour)).date()
+def user_today(day_start_hour: int = 0, tz_name: str = "UTC") -> date:
+    tz = ZoneInfo(tz_name)
+    local_now = datetime.now(tz)
+    return (local_now - timedelta(hours=day_start_hour)).date()
 
 
-async def get_day_start_hour(user_id: int, db: AsyncSession) -> int:
+def day_boundary(today: date, day_start_hour: int, tz_name: str = "UTC") -> datetime:
+    tz = ZoneInfo(tz_name)
+    local_boundary = datetime(today.year, today.month, today.day, day_start_hour, tzinfo=tz)
+    return local_boundary.astimezone(timezone.utc)
+
+
+def next_day_boundary(day_start_hour: int, tz_name: str = "UTC") -> datetime:
+    today = user_today(day_start_hour, tz_name)
+    tomorrow = today + timedelta(days=1)
+    return day_boundary(tomorrow, day_start_hour, tz_name)
+
+
+async def get_user_day_settings(user_id: int, db: AsyncSession) -> tuple[int, str]:
     result = await db.execute(
-        select(UserSettings.day_start_hour).where(UserSettings.user_id == user_id)
+        select(UserSettings.day_start_hour, UserSettings.timezone)
+        .where(UserSettings.user_id == user_id)
     )
-    return result.scalar_one_or_none() or 0
+    row = result.one_or_none()
+    if row is None:
+        return 0, "UTC"
+    return row[0] or 0, row[1] or "UTC"
 
 
 async def get_or_create_today_plan(
-    user_id: int, db: AsyncSession, day_start_hour: int | None = None,
+    user_id: int, db: AsyncSession,
+    day_start_hour: int | None = None,
+    tz_name: str | None = None,
 ) -> DayPlan:
-    if day_start_hour is None:
-        day_start_hour = await get_day_start_hour(user_id, db)
-    today = user_today(day_start_hour)
+    if day_start_hour is None or tz_name is None:
+        dsh, tz = await get_user_day_settings(user_id, db)
+        if day_start_hour is None:
+            day_start_hour = dsh
+        if tz_name is None:
+            tz_name = tz
+
+    today = user_today(day_start_hour, tz_name)
     result = await db.execute(
         select(DayPlan)
         .where(DayPlan.user_id == user_id, DayPlan.date == today)
@@ -47,10 +73,7 @@ async def get_or_create_today_plan(
     )
     prev_plan = prev_result.scalar_one_or_none()
 
-    boundary = datetime(
-        today.year, today.month, today.day,
-        day_start_hour, tzinfo=timezone.utc,
-    )
+    boundary = day_boundary(today, day_start_hour, tz_name)
 
     has_active_carryover = False
 

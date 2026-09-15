@@ -6,7 +6,7 @@ from database import get_db
 from models import User, DayPlan, Task, TaskStatus
 from schemas import TimerStateResponse, TaskResponse
 from security import get_current_user, decode_token
-from day import utcnow, get_or_create_today_plan
+from day import utcnow, get_or_create_today_plan, get_user_day_settings, next_day_boundary
 from ws import manager
 
 router = APIRouter()
@@ -58,12 +58,18 @@ def _start_procrastination(plan: DayPlan, now: datetime):
         plan.procrastination_started_at = now
 
 
-async def _broadcast_state(user_id: int, plan: DayPlan, now: datetime):
-    state = _build_state(plan, now)
+async def _broadcast_state(
+    user_id: int, plan: DayPlan, now: datetime,
+    ndb: datetime | None = None,
+):
+    state = _build_state(plan, now, ndb)
     await manager.broadcast_to_user(user_id, state.model_dump(mode="json"))
 
 
-def _build_state(plan: DayPlan, now: datetime) -> TimerStateResponse:
+def _build_state(
+    plan: DayPlan, now: datetime,
+    ndb: datetime | None = None,
+) -> TimerStateResponse:
     active = _find_active_task(plan)
     return TimerStateResponse(
         plan_id=plan.id,
@@ -74,6 +80,7 @@ def _build_state(plan: DayPlan, now: datetime) -> TimerStateResponse:
         procrastination_running=plan.procrastination_started_at is not None,
         tasks=[TaskResponse.model_validate(t) for t in plan.tasks],
         day_finalized=plan.day_finalized,
+        next_day_boundary=ndb,
     )
 
 
@@ -82,8 +89,10 @@ async def get_state(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    plan = await get_or_create_today_plan(current_user.id, db)
-    return _build_state(plan, utcnow())
+    dsh, tz = await get_user_day_settings(current_user.id, db)
+    plan = await get_or_create_today_plan(current_user.id, db, dsh, tz)
+    ndb = next_day_boundary(dsh, tz)
+    return _build_state(plan, utcnow(), ndb)
 
 
 @router.post("/tasks/{task_id}/start", response_model=TimerStateResponse)

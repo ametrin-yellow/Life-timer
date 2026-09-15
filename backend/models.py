@@ -106,6 +106,7 @@ class UserSettings(Base):
     base_penalty                 = Column(Integer, default=10)
     allow_negative_balance       = Column(Boolean, default=False)
     day_start_hour               = Column(Integer, default=0)
+    timezone                     = Column(String, default="UTC")
 
     user = relationship("User", back_populates="settings")
 

@@ -109,6 +109,7 @@ class SettingsResponse(BaseModel):
     base_penalty: int
     allow_negative_balance: bool
     day_start_hour: int
+    timezone: str
 
     model_config = {"from_attributes": True}
 
@@ -124,6 +125,7 @@ class SettingsUpdate(BaseModel):
     base_penalty: Optional[int] = None
     allow_negative_balance: Optional[bool] = None
     day_start_hour: Optional[int] = None
+    timezone: Optional[str] = None
 
 
 # ──────────────────────────────────────────────
@@ -195,3 +197,4 @@ class TimerStateResponse(BaseModel):
     procrastination_running: bool
     tasks: list[TaskResponse] = []
     day_finalized: bool
+    next_day_boundary: Optional[datetime] = None

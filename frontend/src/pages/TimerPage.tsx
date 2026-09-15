@@ -41,9 +41,17 @@ export default function TimerPage({ onStats }: Props) {
     )
   }
 
-  const sorted = [...tasks].sort((a, b) =>
-    a.position - b.position || a.created_at.localeCompare(b.created_at)
-  )
+  const planDate = state?.date ? new Date(state.date + 'T00:00:00') : new Date()
+  const planIsoDay = planDate.getDay() === 0 ? 7 : planDate.getDay()
+
+  function matchesSchedule(t: { schedule_days: string | null }) {
+    if (!t.schedule_days) return true
+    return t.schedule_days.split(',').map(Number).includes(planIsoDay)
+  }
+
+  const sorted = [...tasks]
+    .filter(matchesSchedule)
+    .sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at))
   const pending = sorted.filter((t) => t.status === 'pending' || t.status === 'active')
   const done = sorted.filter((t) => t.status === 'completed' || t.status === 'skipped')
 
